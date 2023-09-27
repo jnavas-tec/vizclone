@@ -29,6 +29,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static Rectangle codePanelRect = null;
     private static Rectangle edgePanelRect = null;
     private static int zoomCenter = 0;
+    private static int numCodeFragments = 3000;
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
@@ -74,16 +75,16 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         public void componentResized(ComponentEvent event) {
-
-            // Looks like this is triggered lots of times, be careful!!!
-            System.out.println(event.getComponent().getClass().getName());
-            heights = new int[getWidth()];
-            colors = new Color[getWidth()];
-            for (int i = 0; i < getWidth(); i++) {
-                int colorIdx = getNextRandom(0, 4);
-                colors[i] = Color.decode(SIMILITUDE[colorIdx]);
-                heights[i] = getNextRandom(1, 5) + colorIdx * 5;
+            if (heights == null) {
+                heights = new int[numCodeFragments];
+                colors = new Color[numCodeFragments];
+                for (int i = 0; i < numCodeFragments; i++) {
+                    int colorIdx = getNextRandom(0, 4);
+                    colors[i] = Color.decode(SIMILITUDE[colorIdx]);
+                    heights[i] = getNextRandom(1, 5) + colorIdx * 5;
+                }
             }
+            codePanelRect = new Rectangle(0, 0, getWidth(), getHeight());
         }
 
         public void componentShown(ComponentEvent event) {
@@ -104,27 +105,23 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         @Override
         protected void paintComponent(Graphics g) {
-            if (getX() >= 0 && getY() >= 0) {
+            if (codePanelRect != null && getX() >= 0 && getY() >= 0) {
                 g2 = (Graphics2D)g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setClip(null);
-                g2.setColor(this.getParent().getBackground());
-                g2.fillRect(0, 0, getWidth(), getHeight());
-                if (heights == null) {
-                    heights = new int[getWidth()];
-                    colors = new Color[getWidth()];
-                    for (int i = 0; i < getWidth(); i++) {
-                        int colorIdx = getNextRandom(0, 4);
-                        colors[i] = Color.decode(SIMILITUDE[colorIdx]);
-                        heights[i] = getNextRandom(1, 5) + colorIdx * 5;
-                    }
-                }
-                for (int i = 0; i < getWidth(); i++) {
+                //codePanelRect = new Rectangle(0, 0, getWidth(), getHeight());
+                paintPanelBackground();
+                for (int i = 0; i < codePanelRect.width; i++) {
                     g2.setColor(colors[i]);
                     g2.drawLine(i, STRIPE_HEIGHT - heights[i], i, STRIPE_HEIGHT);
                 }
                 //super.paintComponent(g);
             }
+        }
+
+        private void paintPanelBackground() {
+            g2.setColor(this.getParent().getBackground());
+            g2.fillRect(codePanelRect.x, codePanelRect.y, codePanelRect.width, codePanelRect.height);
         }
     }
 
@@ -172,12 +169,15 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         private void paintZoomedSelection() {
             g2.setColor(Color.GRAY);
-            g2.setClip(null);
             g2.drawRect(zoomedRect.x, zoomedRect.y, zoomedRect.width, zoomedRect.height);
         }
     }
 
-    private static class ClonePanel extends JPanel {
+    private static class ClonePanel extends JPanel implements ComponentListener {
+
+        Random r = new Random();
+        int[] heights = null;
+        Color[] colors = null;
 
         public ClonePanel(int minHeight) {
             super();
@@ -185,9 +185,31 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             this.setPreferredSize(new Dimension(0, minHeight));
         }
 
-        Random r = new Random();
-        int[] heights = null;
-        Color[] colors = null;
+        public void componentMoved(ComponentEvent event) {
+
+        }
+
+        public void componentResized(ComponentEvent event) {
+            if (heights == null) {
+                heights = new int[numCodeFragments];
+                colors = new Color[numCodeFragments];
+                for (int i = 0; i < numCodeFragments; i++) {
+                    int colorIdx = getNextRandom(0, 4);
+                    colors[i] = Color.decode(SIMILITUDE[colorIdx]);
+                    heights[i] = getNextRandom(1, 5) + colorIdx * 5;
+                }
+            }
+            zoomCenter = getWidth() / 2;
+            clonesPanelRect = new Rectangle(0, 0, getWidth(), getHeight());
+        }
+
+        public void componentShown(ComponentEvent event) {
+
+        }
+
+        public void componentHidden(ComponentEvent event) {
+
+        }
 
         int getNextRandom(int low, int high) {
             return r.nextInt(high - low) + low;
@@ -199,29 +221,17 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         @Override
         protected void paintComponent(Graphics g) {
-            if (getX() >= 0 && getY() >= STRIPE_HEIGHT) {
-                zoomCenter = getWidth() / 2;
+            if (clonesPanelRect != null && getX() >= 0 && getY() >= STRIPE_HEIGHT) {
                 g2 = (Graphics2D)g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setClip(null);
-                clonesPanelRect = new Rectangle(0, 0, getWidth(), getHeight());
                 paintPanelBackground();
-                if (heights == null) {
-                    heights = new int[getWidth()];
-                    colors = new Color[getWidth()];
-                    for (int i = 0; i < getWidth(); i++) {
-                        int colorIdx = getNextRandom(0, 4);
-                        if (Math.abs(zoomCenter - i) > 100)
-                            colors[i] = translucent(Color.decode(SIMILITUDE[colorIdx]), 64);
-                        else
-                            colors[i] = Color.decode(SIMILITUDE[colorIdx]);
-                        heights[i] = getNextRandom(1, 5) + colorIdx * 5;                    }
-                }
                 for (int i = 0; i < getWidth(); i++) {
                     g2.setColor(colors[i]);
                     g2.drawLine(i, 0, i, heights[i]);
                 }
                 sliderRect = new Rectangle(zoomCenter - 100, 0, 200, STRIPE_HEIGHT - 1);
+                paintSlider();
                 super.paintComponent(g);
             }
         }
@@ -233,7 +243,6 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         private void paintSlider() {
             g2.setColor(Color.GRAY);
-            g2.setClip(null);
             g2.drawRect(sliderRect.x, sliderRect.y, sliderRect.width, sliderRect.height);
         }
     }
