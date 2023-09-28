@@ -4,6 +4,7 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
@@ -12,6 +13,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.geom.GeneralPath;
 import java.util.Random;
 
 public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
@@ -22,6 +24,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static final String RED = "#890c16"; //"#FF6961";
     private static final String[] SIMILITUDE = { GREEN, YELLOW, ORANGE, RED };
     private static final int STRIPE_HEIGHT = 20;
+    private static final JBColor borderColor = new JBColor(Color.LIGHT_GRAY, Color.GRAY);
     private static Graphics2D g2 = null;
     private static Rectangle zoomedRect = null;
     private static Rectangle sliderRect = null;
@@ -125,13 +128,34 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
     }
 
-    private static class EdgePanel extends JPanel {
+    private static class EdgePanel extends JPanel implements ComponentListener {
 
         private ClonePanel clonePanel = null;
 
         public EdgePanel() {
             super();
             setOpaque(false);
+            this.addComponentListener(this);
+        }
+
+        public void componentMoved(ComponentEvent event) {
+
+        }
+
+        public void componentResized(ComponentEvent event) {
+            edgePanelRect = new Rectangle(0, 0, getWidth(), getHeight());
+        }
+
+        public void componentShown(ComponentEvent event) {
+
+        }
+
+        public void componentHidden(ComponentEvent event) {
+
+        }
+
+        public ClonePanel getClonePanel() {
+            return clonePanel;
         }
 
         public void setClonePanel(ClonePanel clonePanel) {
@@ -152,12 +176,10 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         @Override
         protected void paintComponent(Graphics g) {
-            if (getX() >= 0 && getY() >= 0) {
+            if (clonesPanelRect != null && edgePanelRect != null && getX() >= 0 && getY() >= 0) {
                 g2 = (Graphics2D)g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 Color color = this.getParent().getBackground();
-                //GradientPaint gradientPaint = new GradientPaint(0, 0, Color.decode("#1CB5E0"), 0, getHeight(), Color.decode("#000046"));
-                //g2.setPaint(gradientPaint);
                 g2.setColor(color);
                 g2.setClip(null);
                 g2.fillRect(0, 0, getWidth(), getHeight());
@@ -168,8 +190,62 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         private void paintZoomedSelection() {
-            g2.setColor(Color.GRAY);
-            g2.drawRect(zoomedRect.x, zoomedRect.y, zoomedRect.width, zoomedRect.height);
+            g2.setColor(borderColor);
+            g2.drawRect(zoomedRect.x - 1, zoomedRect.y - 1, zoomedRect.width + 2, zoomedRect.height + 2);
+            for (int i = 0; i < 200; i++) {
+                int idx = zoomCenter - 100 + i;
+                Color color = clonePanel.colors[idx];
+                int height = clonePanel.heights[idx];
+                int barWidth = zoomedRect.width / 200;
+                g2.setColor(color);
+                g2.fillRect(zoomedRect.x + i * barWidth, zoomedRect.y, barWidth, height * zoomedRect.height / STRIPE_HEIGHT);
+                g2.setColor(borderColor);
+                g2.drawRect(zoomedRect.x + i * barWidth, zoomedRect.y, barWidth, height * zoomedRect.height / STRIPE_HEIGHT);
+            }
+            int[] xPoints = {
+                zoomedRect.x - 1,
+                zoomedRect.x + zoomedRect.width + 1,
+                zoomedRect.x + zoomedRect.width + 1,
+                sliderRect.x + sliderRect.width + 1,
+                sliderRect.x + sliderRect.width + 1,
+                sliderRect.x,
+                sliderRect.x,
+                zoomedRect.x
+            };
+            int[] yPoints = {
+                zoomedRect.y + zoomedRect.height + 1,
+                zoomedRect.y + zoomedRect.height + 1,
+                (zoomedRect.y + zoomedRect.height + 1 + edgePanelRect.height) / 2,
+                (zoomedRect.y + zoomedRect.height + 1 + edgePanelRect.height) / 2,
+                edgePanelRect.height - 1,
+                edgePanelRect.height - 1,
+                (zoomedRect.y + zoomedRect.height + 1 + edgePanelRect.height) / 2,
+                (zoomedRect.y + zoomedRect.height + 1 + edgePanelRect.height) / 2
+            };
+            for (int i = 0; i < 8; i++) {
+                System.out.printf("(%d, %d)\n", xPoints[i], yPoints[i]);
+            }
+            System.out.printf("edgePanelRect (%d, %d)\n", edgePanelRect.width, edgePanelRect.height);
+            System.out.printf("zoomedRect (%d, %d)\n", zoomedRect.width, zoomedRect.height);
+            GeneralPath zoomBrace = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
+            //zoomBrace.moveTo(xPoints[0], yPoints[0]);
+            zoomBrace.moveTo(xPoints[1], yPoints[1]);
+            zoomBrace.curveTo(xPoints[2], yPoints[2], xPoints[3], yPoints[3], xPoints[4], yPoints[4]);
+            zoomBrace.lineTo(xPoints[5], yPoints[5]);
+            zoomBrace.curveTo(xPoints[6], yPoints[6], xPoints[7], yPoints[7], xPoints[0], yPoints[0]);
+            zoomBrace.closePath();
+            GradientPaint gradientPaint =
+                    new GradientPaint(
+                            edgePanelRect.width / 2f,
+                            edgePanelRect.height,
+                            getParent().getBackground(),
+                            edgePanelRect.width / 2f,
+                            yPoints[0],
+                            borderColor);
+            g2.setPaint(gradientPaint);
+            g2.fill(zoomBrace);
+            //g2.setPaint(Color.BLACK);
+            //g2.draw(zoomBrace);
         }
     }
 
@@ -183,6 +259,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             super();
             setOpaque(false);
             this.setPreferredSize(new Dimension(0, minHeight));
+            this.addComponentListener(this);
         }
 
         public void componentMoved(ComponentEvent event) {
@@ -195,7 +272,10 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 colors = new Color[numCodeFragments];
                 for (int i = 0; i < numCodeFragments; i++) {
                     int colorIdx = getNextRandom(0, 4);
-                    colors[i] = Color.decode(SIMILITUDE[colorIdx]);
+                    if (Math.abs(getWidth() / 2 - i) > 100)
+                        colors[i] = translucent(Color.decode(VizCloneToolWindowFactory.SIMILITUDE[colorIdx]), 64);
+                    else
+                        colors[i] = Color.decode(VizCloneToolWindowFactory.SIMILITUDE[colorIdx]);
                     heights[i] = getNextRandom(1, 5) + colorIdx * 5;
                 }
             }
@@ -216,7 +296,8 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         Color translucent(Color color, int alpha) {
-            return new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha);
+            return new JBColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha),
+                               new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));
         }
 
         @Override
@@ -242,7 +323,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         private void paintSlider() {
-            g2.setColor(Color.GRAY);
+            g2.setColor(borderColor); //this.getParent().getForeground().darker()); //Color.GRAY.brighter());
             g2.drawRect(sliderRect.x, sliderRect.y, sliderRect.width, sliderRect.height);
         }
     }
