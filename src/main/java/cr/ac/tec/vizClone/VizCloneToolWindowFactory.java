@@ -18,16 +18,27 @@ import java.util.Random;
 
 public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
+    /**/
+    // Dark colors
+    private static final String GREEN = "#a0b4a1";
+    private static final String YELLOW = "#8aa18b";
+    private static final String ORANGE = "#5e7e60";
+    private static final String RED = "#335c38";
+    /**/
+    /*
+    // Light colors
     private static final String GREEN = "#8ff09d";
     private static final String YELLOW = "#f5c73d";
     private static final String ORANGE = "#f56b3d";
     private static final String RED = "#ff3838";
+     */
+
     private static final String[] SIMILITUDE = { GREEN, YELLOW, ORANGE, RED };
     private static final int STRIPE_HEIGHT = 20; // pixels
     private static final int GRAPH_HEIGHT = 60;  // percent
     private static final int ZOOM_HEIGHT = 20;   // percent
     private static final int BRACE_HEIGHT = 20;  // percent
-    private static final JBColor borderColor = new JBColor(Color.LIGHT_GRAY, Color.GRAY);
+    private static final JBColor borderColor = new JBColor(Color.LIGHT_GRAY, Color.GRAY.darker());
     private static Graphics2D g2 = null;
     private static Rectangle codePanelRect = null;
     private static Rectangle edgePanelRect = null;
