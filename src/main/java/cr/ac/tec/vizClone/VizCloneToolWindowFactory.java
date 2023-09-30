@@ -7,6 +7,7 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import cr.ac.tec.vizClone.model.CloneGraph;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -49,11 +50,15 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static Rectangle clonesPanelRect = null;
     private static Rectangle sliderRect = null;
     private static int zoomCenter = 0;
-    private static int numCodeFragments = 3000;
-    private static int numZoomedClones = 200;
+    private static final int numCodeFragments = 3000;
+    private static final int numCodeClones = 3000;
+    private static final int numZoomedClones = 200;
+
+    private static CloneGraph graph = null;
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        graph = new CloneGraph(numCodeFragments, numCodeClones);
         VizCloneToolWindowContent toolWindowContent = new VizCloneToolWindowContent(toolWindow);
         Content content = ContentFactory.getInstance().createContent(toolWindowContent.getContentPanel(), "", false);
         toolWindow.getContentManager().addContent(content);
@@ -80,8 +85,11 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static class CodePanel extends JPanel implements ComponentListener {
 
         Random r = new Random();
+
         int[] heights = null;
         Color[] colors = null;
+
+
 
         public CodePanel(int minHeight) {
             super();
@@ -95,6 +103,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         public void componentResized(ComponentEvent event) {
+
             if (heights == null) {
                 heights = new int[numCodeFragments];
                 colors = new Color[numCodeFragments];
@@ -104,6 +113,8 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                     heights[i] = getNextRandom(1, 5) + colorIdx * 5;
                 }
             }
+
+
             codePanelRect = new Rectangle(0, 0, getWidth(), getHeight());
         }
 
@@ -132,8 +143,14 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 //codePanelRect = new Rectangle(0, 0, getWidth(), getHeight());
                 paintPanelBackground();
                 for (int i = 0; i < codePanelRect.width; i++) {
-                    g2.setColor(colors[i]);
-                    g2.drawLine(i, STRIPE_HEIGHT - heights[i], i, STRIPE_HEIGHT);
+                    /*
+                    int colorIdx = getNextRandom(0, 4);
+                    colors[i] = Color.decode(SIMILITUDE[colorIdx]);
+                    heights[i] = getNextRandom(1, 5) + colorIdx * 5;
+                    */
+                    int height = graph.getFragments().get(i).getWeight();
+                    g2.setColor(Color.decode(SIMILITUDE[(height - 1) / 4]));
+                    g2.drawLine(i, STRIPE_HEIGHT - height, i, STRIPE_HEIGHT);
                 }
                 //super.paintComponent(g);
             }
