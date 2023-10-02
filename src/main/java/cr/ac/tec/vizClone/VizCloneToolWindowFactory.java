@@ -7,13 +7,19 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import cr.ac.tec.vizClone.model.Clone;
 import cr.ac.tec.vizClone.model.CloneGraph;
+import cr.ac.tec.vizClone.model.Fragment;
+import org.apache.batik.ext.awt.geom.Cubic;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.geom.CubicCurve2D;
 import java.awt.geom.GeneralPath;
 import java.util.Random;
 
@@ -84,8 +90,6 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
     private static class CodePanel extends JPanel implements ComponentListener {
 
-        Random r = new Random();
-
         int[] heights = null;
         Color[] colors = null;
 
@@ -103,18 +107,6 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         public void componentResized(ComponentEvent event) {
-
-            if (heights == null) {
-                heights = new int[numCodeFragments];
-                colors = new Color[numCodeFragments];
-                for (int i = 0; i < numCodeFragments; i++) {
-                    int colorIdx = getNextRandom(0, 4);
-                    colors[i] = Color.decode(SIMILITUDE[colorIdx]);
-                    heights[i] = getNextRandom(1, 5) + colorIdx * 5;
-                }
-            }
-
-
             codePanelRect = new Rectangle(0, 0, getWidth(), getHeight());
         }
 
@@ -126,33 +118,19 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         }
 
-        int getNextRandom(int low, int high) {
-            return r.nextInt(high - low) + low;
-        }
-
-        Color translucent(Color color, int alpha) {
-            return new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha);
-        }
-
         @Override
         protected void paintComponent(Graphics g) {
             if (codePanelRect != null && getX() >= 0 && getY() >= 0) {
                 g2 = (Graphics2D)g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setClip(null);
-                //codePanelRect = new Rectangle(0, 0, getWidth(), getHeight());
                 paintPanelBackground();
                 for (int i = 0; i < codePanelRect.width; i++) {
-                    /*
-                    int colorIdx = getNextRandom(0, 4);
-                    colors[i] = Color.decode(SIMILITUDE[colorIdx]);
-                    heights[i] = getNextRandom(1, 5) + colorIdx * 5;
-                    */
-                    int height = graph.getFragments().get(i).getWeight();
-                    g2.setColor(Color.decode(SIMILITUDE[(height - 1) / 4]));
-                    g2.drawLine(i, STRIPE_HEIGHT - height, i, STRIPE_HEIGHT);
+                    int weight = graph.getFragments().get(i).getWeight();
+                    int colorIndex = graph.getFragmentColorIndex(weight);
+                    g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
+                    g2.drawLine(i, STRIPE_HEIGHT - weight, i, STRIPE_HEIGHT);
                 }
-                //super.paintComponent(g);
             }
         }
 
@@ -165,11 +143,51 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static class EdgePanel extends JPanel implements ComponentListener {
 
         private ClonePanel clonePanel = null;
+        private int selectedClone = -1;
 
         public EdgePanel() {
             super();
-            setOpaque(false);
+            setOpaque(true);
             this.addComponentListener(this);
+            this.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    super.mouseClicked(e);
+                    if (zoomedRect.contains(e.getPoint())) {
+                        int firstZoomedClone = zoomCenter - (numZoomedClones / 2);
+                        int barWidth = zoomedRect.width / numZoomedClones;
+                        int cloneOffset = (e.getX() - zoomedRect.x + barWidth - 1) / barWidth - 1;
+                        int barX = cloneOffset * barWidth + zoomedRect.x;
+                        int barY = zoomedRect.y;
+                        int clickedClone = cloneOffset + firstZoomedClone;
+                        int weight = graph.getClones().get(clickedClone).getWeight();
+                        int barHeight = zoomedRect.height;
+                        if (new Rectangle(barX, barY, barWidth, barHeight).contains(e.getPoint())) {
+                            if (selectedClone != clickedClone)
+                                selectedClone = clickedClone;
+                            else
+                                selectedClone = -1;
+                            /*
+                            System.out.printf("selectedClone %d\n", selectedClone);
+                            System.out.printf("point (%d, %d)\n", e.getPoint().x, e.getPoint().y);
+                            System.out.printf("rect (%d, %d, %d, %d)\n", barX, barY, barWidth + barX - 1, barHeight + barY - 1);
+
+                             */
+                        }
+                        else {
+                            selectedClone = -1;
+                            /*
+                            System.out.printf("NON selectedClone %d\n", clickedClone);
+                            System.out.printf("point (%d, %d)\n", e.getPoint().x, e.getPoint().y);
+                            System.out.printf("rect (%d, %d, %d, %d)\n", barX, barY, barWidth + barX - 1, barHeight + barY - 1);
+
+                             */
+                        }
+                        repaint();
+                    }
+                    //paintComponent(e.getComponent().getGraphics());
+                }
+            });
         }
 
         public void componentMoved(ComponentEvent event) {
@@ -241,7 +259,6 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 g2.setClip(null);
                 g2.fillRect(clonesPanelRect.x, clonesPanelRect.y, clonesPanelRect.width, clonesPanelRect.height);
                 paintZoomedSelection();
-                super.paintComponent(g);
             }
         }
 
@@ -253,11 +270,25 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             int arcSize = barWidth * 2 / 3;
 
             // draw zoomed-out clones
+            int maxBarHeight = 0;
             for (int i = 0; i < numZoomedClones; i++) {
                 int idx = firstZoomedClone + i;
-                int barHeight = clonePanel.heights[idx] * zoomedRect.height / STRIPE_HEIGHT;
-                Color color = clonePanel.colors[idx];
-                g2.setColor(color);
+                int weight = graph.getClones().get(idx).getWeight();
+                int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
+                int colorIndex = graph.getFragmentColorIndex(weight);
+                if (selectedClone == -1) {
+                    g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
+                }
+                else {
+                    if (selectedClone == idx) {
+                        g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
+                    }
+                    else {
+                        g2.setColor(borderColor);
+                    }
+                }
+                //if (i == 0)
+                //    System.out.printf("first clone: (%d, %d, %d, %d)\n", barX, barY, barWidth, barHeight);
                 g2.fillRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
                 g2.setColor(borderColor);
                 g2.drawRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
@@ -267,15 +298,50 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             // draw brace
             GeneralPath zoomBrace = getZoomBrace();
             GradientPaint gradientPaint =
-                    new GradientPaint(
-                            edgePanelRect.width / 2f,
-                            bracePath[3].y,
-                            borderColor,
-                            edgePanelRect.width / 2f,
-                            bracePath[0].y,
-                            getParent().getBackground());
+                new GradientPaint(
+                    edgePanelRect.width / 2f,
+                    bracePath[3].y,
+                    borderColor,
+                    edgePanelRect.width / 2f,
+                    bracePath[0].y,
+                    getParent().getBackground());
             g2.setPaint(gradientPaint);
             g2.fill(zoomBrace);
+
+            int cloneCenterX = zoomedRect.x + barWidth / 2;
+            int cloneCenterY = barY;
+
+            // draw arcs
+            for (int c = 0; c < numZoomedClones; c++) {
+                int idx = firstZoomedClone + c;
+                Clone clone = graph.getClones().get(idx);
+                Color cloneColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clone.getWeight())]);
+                for (int f = 0; f < clone.getNumberOfFragments(); f++) {
+                    Fragment fragment = graph.getFragments().get(clone.getFragments().get(f).getFragment());
+                    if (fragment.getFragment() <= codePanelRect.width) {
+                        Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(fragment.getWeight())]);
+                        gradientPaint =
+                                new GradientPaint(
+                                        0,
+                                        cloneCenterY,
+                                        cloneColor,
+                                        0,
+                                        0,
+                                        fragmentColor);
+                        g2.setPaint(gradientPaint);
+                        int ccY = cloneCenterY - cloneCenterY / 100;
+                        g2.drawLine(cloneCenterX, cloneCenterY, cloneCenterX, ccY);
+                        CubicCurve2D curve = new CubicCurve2D.Float();
+                        curve.setCurve(
+                                cloneCenterX, ccY,
+                                cloneCenterX, ccY / 2,
+                                fragment.getFragment(), ccY / 2,
+                                fragment.getFragment(), 0);
+                        g2.draw(curve);
+                    }
+                }
+                cloneCenterX += barWidth;
+            }
         }
 
         @NotNull
@@ -288,13 +354,20 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             zoomBrace.closePath();
             return zoomBrace;
         }
+
+        Color translucent(Color color, int alpha) {
+            return new JBColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha),
+                    new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));
+        }
     }
 
     private static class ClonePanel extends JPanel implements ComponentListener {
 
+        /*
         Random r = new Random();
         int[] heights = null;
         Color[] colors = null;
+        */
 
         public ClonePanel(int minHeight) {
             super();
@@ -309,6 +382,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         public void componentResized(ComponentEvent event) {
             sliderRect = new Rectangle((getWidth() - numZoomedClones) / 2, 0, numZoomedClones, STRIPE_HEIGHT - 1);
+            /*
             if (heights == null) {
                 heights = new int[numCodeFragments];
                 colors = new Color[numCodeFragments];
@@ -321,6 +395,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                     heights[i] = getNextRandom(1, 5) + colorIdx * 5;
                 }
             }
+             */
             zoomCenter = getWidth() / 2;
             clonesPanelRect = new Rectangle(0, 0, getWidth(), getHeight());
         }
@@ -332,11 +407,11 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         public void componentHidden(ComponentEvent event) {
 
         }
-
+        /*
         int getNextRandom(int low, int high) {
             return r.nextInt(high - low) + low;
         }
-
+        */
         Color translucent(Color color, int alpha) {
             return new JBColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha),
                                new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));
@@ -349,9 +424,14 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setClip(null);
                 paintPanelBackground();
-                for (int i = 0; i < getWidth(); i++) {
-                    g2.setColor(colors[i]);
-                    g2.drawLine(i, 0, i, heights[i]);
+                for (int i = 0; i < clonesPanelRect.width; i++) {
+                    int height = graph.getClones().get(i).getWeight();
+                    int colorIndex = graph.getFragmentColorIndex(height);
+                    if (Math.abs(clonesPanelRect.width / 2 - i) > sliderRect.width / 2)
+                        g2.setColor(translucent(Color.decode(SIMILITUDE[colorIndex]), 64));
+                    else
+                        g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
+                    g2.drawLine(i, 0, i, height);
                 }
                 paintSlider();
                 super.paintComponent(g);

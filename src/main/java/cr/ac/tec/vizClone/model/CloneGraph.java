@@ -1,6 +1,5 @@
 package cr.ac.tec.vizClone.model;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
@@ -11,8 +10,9 @@ public class CloneGraph {
     private ArrayList<Clone> clones;
     private int numFragments;
     private ArrayList<Fragment> fragments;
-    private static final int MAX_WEIGHT = 25;
-    private static final int MAX_CC_LEVEL = 4;
+    private static final int MAX_CC_LEVELS = 4;
+    private static final int MAX_FRAGMENTS = 5;
+    public static final int MAX_WEIGHT = MAX_CC_LEVELS * MAX_FRAGMENTS;
 
     private final Random r = new Random();
 
@@ -25,9 +25,9 @@ public class CloneGraph {
             Clone clone = new Clone();
             this.clones.add(clone);
             clone.setClone(c);
-            clone.setNumberOfFragments(getNextRandom(2, 6));
+            clone.setNumberOfFragments(getNextRandom(2, MAX_FRAGMENTS + 2));
             clone.setFragments(new ArrayList<Fragment>());
-            clone.setCognitiveComplexity(getNextRandom(1, MAX_CC_LEVEL));
+            clone.setCognitiveComplexity(getNextRandom(1, MAX_CC_LEVELS + 1));
             clone.setWeight(
                     (clone.getNumberOfFragments() - 1) *
                     clone.getCognitiveComplexity());
@@ -38,9 +38,9 @@ public class CloneGraph {
             fragment.setFragment(f);
             fragment.setNumberOfClones(0);
             fragment.setClones(new ArrayList<Clone>());
-            fragment.setCognitiveComplexity(getNextRandom(1, MAX_CC_LEVEL));
+            fragment.setCognitiveComplexity(getNextRandom(1, MAX_CC_LEVELS + 1));
             fragment.setWeight(
-                    (getNextRandom(2, 6) - 1) *
+                    (getNextRandom(2, MAX_FRAGMENTS + 2) - 1) *
                             fragment.getCognitiveComplexity());
         }
         ArrayList<Integer> s = getShuffledFragments(numFragments, null);
@@ -56,19 +56,6 @@ public class CloneGraph {
                 n++;
             }
         }
-    }
-
-    private ArrayList<Integer> getShuffledFragments(int n, ArrayList<Integer> source) {
-        if (source == null) {
-            source = new ArrayList<>();
-            for (int idx = 0; idx < n; idx++) source.add(idx);
-        }
-        Collections.shuffle(source);
-        return source;
-    }
-
-    int getNextRandom(int low, int high) {
-        return r.nextInt(high - low) + low;
     }
 
     public CloneGraph(ArrayList<Clone> clones, ArrayList<Fragment> fragments) {
@@ -108,5 +95,22 @@ public class CloneGraph {
 
     public void setFragments(ArrayList<Fragment> fragments) {
         this.fragments = fragments;
+    }
+
+    private ArrayList<Integer> getShuffledFragments(int n, ArrayList<Integer> source) {
+        if (source == null) {
+            source = new ArrayList<>();
+            for (int idx = 0; idx < n; idx++) source.add(idx);
+        }
+        Collections.shuffle(source);
+        return source;
+    }
+
+    private int getNextRandom(int low, int high) {
+        return r.nextInt(high - low) + low;
+    }
+
+    public int getFragmentColorIndex(int weight) {
+        return ((weight + MAX_FRAGMENTS - 1) / MAX_FRAGMENTS) - 1;
     }
 }
