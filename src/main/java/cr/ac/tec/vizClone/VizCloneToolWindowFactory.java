@@ -10,7 +10,6 @@ import com.intellij.ui.content.ContentFactory;
 import cr.ac.tec.vizClone.model.Clone;
 import cr.ac.tec.vizClone.model.CloneGraph;
 import cr.ac.tec.vizClone.model.Fragment;
-import org.apache.batik.ext.awt.geom.Cubic;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -21,7 +20,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.CubicCurve2D;
 import java.awt.geom.GeneralPath;
-import java.util.Random;
 
 public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
@@ -97,7 +95,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         public CodePanel(int minHeight) {
             super();
-            setOpaque(false);
+            setOpaque(true);
             this.setPreferredSize(new Dimension(0, minHeight));
             this.addComponentListener(this);
         }
@@ -120,6 +118,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         @Override
         protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
             if (codePanelRect != null && getX() >= 0 && getY() >= 0) {
                 g2 = (Graphics2D)g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -167,25 +166,12 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                                 selectedClone = clickedClone;
                             else
                                 selectedClone = -1;
-                            /*
-                            System.out.printf("selectedClone %d\n", selectedClone);
-                            System.out.printf("point (%d, %d)\n", e.getPoint().x, e.getPoint().y);
-                            System.out.printf("rect (%d, %d, %d, %d)\n", barX, barY, barWidth + barX - 1, barHeight + barY - 1);
-
-                             */
                         }
                         else {
                             selectedClone = -1;
-                            /*
-                            System.out.printf("NON selectedClone %d\n", clickedClone);
-                            System.out.printf("point (%d, %d)\n", e.getPoint().x, e.getPoint().y);
-                            System.out.printf("rect (%d, %d, %d, %d)\n", barX, barY, barWidth + barX - 1, barHeight + barY - 1);
-
-                             */
                         }
                         repaint();
                     }
-                    //paintComponent(e.getComponent().getGraphics());
                 }
             });
         }
@@ -251,6 +237,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         @Override
         protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
             if (clonesPanelRect != null && edgePanelRect != null && getX() >= 0 && getY() >= 0) {
                 g2 = (Graphics2D)g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -270,29 +257,41 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             int arcSize = barWidth * 2 / 3;
 
             // draw zoomed-out clones
-            int maxBarHeight = 0;
-            for (int i = 0; i < numZoomedClones; i++) {
-                int idx = firstZoomedClone + i;
-                int weight = graph.getClones().get(idx).getWeight();
+            if (selectedClone == -1) {
+                // no clone selected - paint colored clones
+                for (int i = 0; i < numZoomedClones; i++) {
+                    int idx = firstZoomedClone + i;
+                    int weight = graph.getClones().get(idx).getWeight();
+                    int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
+                    int colorIndex = graph.getFragmentColorIndex(weight);
+                    g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
+                    g2.fillRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
+                    g2.setColor(borderColor);
+                    g2.drawRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
+                    barX += barWidth;
+                }
+            }
+            else {
+                // clone selected - paint grayed clones
+                for (int i = 0; i < numZoomedClones; i++) {
+                    int idx = firstZoomedClone + i;
+                    int weight = graph.getClones().get(idx).getWeight();
+                    int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
+                    g2.setColor(borderColor);
+                    g2.fillRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
+                    g2.setColor(borderColor);
+                    g2.drawRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
+                    barX += barWidth;
+                }
+                // paint colored selected clone
+                int weight = graph.getClones().get(selectedClone).getWeight();
                 int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
                 int colorIndex = graph.getFragmentColorIndex(weight);
-                if (selectedClone == -1) {
-                    g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
-                }
-                else {
-                    if (selectedClone == idx) {
-                        g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
-                    }
-                    else {
-                        g2.setColor(borderColor);
-                    }
-                }
-                //if (i == 0)
-                //    System.out.printf("first clone: (%d, %d, %d, %d)\n", barX, barY, barWidth, barHeight);
+                barX = zoomedRect.x + barWidth * (selectedClone - firstZoomedClone);
+                g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
                 g2.fillRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
                 g2.setColor(borderColor);
                 g2.drawRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
-                barX += barWidth;
             }
 
             // draw brace
@@ -312,6 +311,15 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             int cloneCenterY = barY;
 
             // draw arcs
+            if (selectedClone == -1) {
+                drawArcs(firstZoomedClone, cloneCenterX, cloneCenterY, barWidth);
+            }
+            else {
+                drawGrayedArcs(firstZoomedClone, cloneCenterX, cloneCenterY, barWidth);
+                cloneCenterX += (selectedClone - firstZoomedClone) * barWidth;
+                drawSelectedArcs(firstZoomedClone, cloneCenterX, cloneCenterY, barWidth);
+            }
+            /*
             for (int c = 0; c < numZoomedClones; c++) {
                 int idx = firstZoomedClone + c;
                 Clone clone = graph.getClones().get(idx);
@@ -342,6 +350,107 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 }
                 cloneCenterX += barWidth;
             }
+
+             */
+        }
+
+        private void drawArcs(int firstZoomedClone, int cloneCenterX, int cloneCenterY, int barWidth) {
+            for (int c = 0; c < numZoomedClones; c++) {
+                int idx = firstZoomedClone + c;
+                Clone clone = graph.getClones().get(idx);
+                Color cloneColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clone.getWeight())]);
+                for (int f = 0; f < clone.getNumberOfFragments(); f++) {
+                    Fragment fragment = graph.getFragments().get(clone.getFragments().get(f).getFragment());
+                    if (fragment.getFragment() <= codePanelRect.width) {
+                        Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(fragment.getWeight())]);
+                        GradientPaint gradientPaint =
+                                new GradientPaint(
+                                        0,
+                                        cloneCenterY,
+                                        cloneColor,
+                                        0,
+                                        0,
+                                        fragmentColor);
+                        g2.setPaint(gradientPaint);
+                        int ccY = cloneCenterY - cloneCenterY / 100;
+                        g2.drawLine(cloneCenterX, cloneCenterY, cloneCenterX, ccY);
+                        CubicCurve2D curve = new CubicCurve2D.Float();
+                        curve.setCurve(
+                                cloneCenterX, ccY,
+                                cloneCenterX, ccY / 2,
+                                fragment.getFragment(), ccY / 2,
+                                fragment.getFragment(), 0);
+                        g2.draw(curve);
+                    }
+                }
+                cloneCenterX += barWidth;
+            }
+        }
+
+        private void drawGrayedArcs(int firstZoomedClone, int cloneCenterX, int cloneCenterY, int barWidth) {
+            for (int c = 0; c < numZoomedClones; c++) {
+                int idx = firstZoomedClone + c;
+                Clone clone = graph.getClones().get(idx);
+                Color cloneColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clone.getWeight())]);
+                for (int f = 0; f < clone.getNumberOfFragments(); f++) {
+                    Fragment fragment = graph.getFragments().get(clone.getFragments().get(f).getFragment());
+                    if (fragment.getFragment() <= codePanelRect.width) {
+                        Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(fragment.getWeight())]);
+                        g2.setPaint(borderColor);
+                        int ccY = cloneCenterY - cloneCenterY / 100;
+                        g2.drawLine(cloneCenterX, cloneCenterY, cloneCenterX, ccY);
+                        CubicCurve2D curve = new CubicCurve2D.Float();
+                        curve.setCurve(
+                                cloneCenterX, ccY,
+                                cloneCenterX, ccY / 2,
+                                fragment.getFragment(), ccY / 2,
+                                fragment.getFragment(), 0);
+                        g2.draw(curve);
+                    }
+                }
+                cloneCenterX += barWidth;
+            }
+        }
+
+        private void drawSelectedArcs(int firstZoomedClone, int cloneCenterX, int cloneCenterY, int barWidth) {
+            int weight = graph.getClones().get(selectedClone).getWeight();
+            int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
+            int barX = zoomedRect.x + barWidth * (selectedClone - firstZoomedClone);
+            int barY = zoomedRect.y;
+            int arcSize = barWidth * 2 / 3;
+            int colorIndex = graph.getFragmentColorIndex(weight);
+            g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
+            g2.fillRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
+            g2.setColor(borderColor);
+            g2.drawRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
+
+
+            Clone clone = graph.getClones().get(selectedClone);
+            Color cloneColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clone.getWeight())]);
+            for (int f = 0; f < clone.getNumberOfFragments(); f++) {
+                Fragment fragment = graph.getFragments().get(clone.getFragments().get(f).getFragment());
+                if (fragment.getFragment() <= codePanelRect.width) {
+                    Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(fragment.getWeight())]);
+                    GradientPaint gradientPaint =
+                            new GradientPaint(
+                                    0,
+                                    cloneCenterY,
+                                    cloneColor,
+                                    0,
+                                    0,
+                                    fragmentColor);
+                    g2.setPaint(gradientPaint);
+                    int ccY = cloneCenterY - cloneCenterY / 100;
+                    g2.drawLine(cloneCenterX, cloneCenterY, cloneCenterX, ccY);
+                    CubicCurve2D curve = new CubicCurve2D.Float();
+                    curve.setCurve(
+                            cloneCenterX, ccY,
+                            cloneCenterX, ccY / 2,
+                            fragment.getFragment(), ccY / 2,
+                            fragment.getFragment(), 0);
+                    g2.draw(curve);
+                }
+            }
         }
 
         @NotNull
@@ -363,15 +472,9 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
     private static class ClonePanel extends JPanel implements ComponentListener {
 
-        /*
-        Random r = new Random();
-        int[] heights = null;
-        Color[] colors = null;
-        */
-
         public ClonePanel(int minHeight) {
             super();
-            setOpaque(false);
+            setOpaque(true);
             this.setPreferredSize(new Dimension(0, minHeight));
             this.addComponentListener(this);
         }
@@ -382,20 +485,6 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         public void componentResized(ComponentEvent event) {
             sliderRect = new Rectangle((getWidth() - numZoomedClones) / 2, 0, numZoomedClones, STRIPE_HEIGHT - 1);
-            /*
-            if (heights == null) {
-                heights = new int[numCodeFragments];
-                colors = new Color[numCodeFragments];
-                for (int i = 0; i < numCodeFragments; i++) {
-                    int colorIdx = getNextRandom(0, 4);
-                    if (Math.abs(getWidth() / 2 - i) > 100)
-                        colors[i] = translucent(Color.decode(VizCloneToolWindowFactory.SIMILITUDE[colorIdx]), 64);
-                    else
-                        colors[i] = Color.decode(VizCloneToolWindowFactory.SIMILITUDE[colorIdx]);
-                    heights[i] = getNextRandom(1, 5) + colorIdx * 5;
-                }
-            }
-             */
             zoomCenter = getWidth() / 2;
             clonesPanelRect = new Rectangle(0, 0, getWidth(), getHeight());
         }
@@ -407,11 +496,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         public void componentHidden(ComponentEvent event) {
 
         }
-        /*
-        int getNextRandom(int low, int high) {
-            return r.nextInt(high - low) + low;
-        }
-        */
+
         Color translucent(Color color, int alpha) {
             return new JBColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha),
                                new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));
@@ -419,6 +504,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         @Override
         protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
             if (clonesPanelRect != null && getX() >= 0 && getY() >= STRIPE_HEIGHT) {
                 g2 = (Graphics2D)g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -434,7 +520,6 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                     g2.drawLine(i, 0, i, height);
                 }
                 paintSlider();
-                super.paintComponent(g);
             }
         }
 
