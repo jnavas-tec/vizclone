@@ -545,6 +545,17 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             return zoomBrace;
         }
 
+        @NotNull
+        private static GeneralPath getZoomBraces() {
+            GeneralPath zoomBrace = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
+            zoomBrace.moveTo(bracePath[0].x, bracePath[0].y);
+            zoomBrace.curveTo(bracePath[1].x, bracePath[1].y, bracePath[2].x, bracePath[2].y,bracePath[3].x, bracePath[3].y);
+            zoomBrace.lineTo(bracePath[4].x, bracePath[4].y);
+            zoomBrace.curveTo(bracePath[5].x, bracePath[5].y, bracePath[6].x, bracePath[6].y,bracePath[7].x, bracePath[7].y);
+            zoomBrace.closePath();
+            return zoomBrace;
+        }
+
         Color translucent(Color color, int alpha) {
             return new JBColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha),
                     new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));
