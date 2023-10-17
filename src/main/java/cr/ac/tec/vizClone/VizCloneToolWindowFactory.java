@@ -58,8 +58,8 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static Rectangle sliderRect = null;
     private static int firstZoomedCloneX = 0;
     private static int firstZoomedClone = 0;
-    private static int numCodeFragments = 600;
-    private static int numCodeClones = 2500;
+    private static int numCodeFragments = 2500;
+    private static int numCodeClones = 600;
     private static int numZoomedClones = MAX_ZOOMED_CLONES;
     private static int codePanelWidth;
     private static int codePanelBars;
