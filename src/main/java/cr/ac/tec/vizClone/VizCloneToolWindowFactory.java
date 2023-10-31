@@ -2,6 +2,10 @@ package cr.ac.tec.vizClone;
 
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectFileIndex;
+import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.JBColor;
@@ -20,7 +24,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.CubicCurve2D;
 import java.awt.geom.GeneralPath;
+import java.util.Arrays;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
@@ -42,7 +48,8 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static final int ZOOM_Y_OFFSET = 15;   // percent
     private static final int ZOOM_Y_GROW = 5;      // percent
     private static final int ZOOM_Y_SCALE = 4;     // percent
-    private static final int ZOOM_MAX_K = 7;       // horizontal increase factor - KEEP IT ODD
+    private static final int ZOOM_MAX_K = 5;       // horizontal increase factor - KEEP IT ODD
+    private static final int MIN_ZOOMED_CLONES = 100;
     private static final int MAX_ZOOMED_CLONES = 200;
     private static final int SLIDER_CONTROL_POINT_OFFSET = 20;
 
@@ -58,8 +65,8 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static Rectangle sliderRect = null;
     private static int firstZoomedCloneX = 0;
     private static int firstZoomedClone = 0;
-    private static int numCodeFragments = 2500;
-    private static int numCodeClones = 600;
+    private static int numCodeFragments = 1500;
+    private static int numCodeClones = 1500;
     private static int numZoomedClones = MAX_ZOOMED_CLONES;
     private static int codePanelWidth;
     private static int codePanelBars;
@@ -78,6 +85,9 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         VizCloneToolWindowContent toolWindowContent = new VizCloneToolWindowContent(toolWindow);
         Content content = ContentFactory.getInstance().createContent(toolWindowContent.getContentPanel(), "", false);
         toolWindow.getContentManager().addContent(content);
+
+        CloneCollector collector = new CloneCollector();
+        collector.collectJavaClasses(project);
     }
 
     private static class VizCloneToolWindowContent {
@@ -88,11 +98,12 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         private final ClonePanel clonePanel = new ClonePanel(STRIPE_HEIGHT);
 
         public VizCloneToolWindowContent(ToolWindow toolWindow) {
-            if (numCodeClones / 5 < MAX_ZOOMED_CLONES) {
-                numZoomedClones = numCodeClones / 5;
-            }
-            else {
+            numZoomedClones = numCodeClones / 5;
+            if (numZoomedClones >= MAX_ZOOMED_CLONES) {
                 numZoomedClones = MAX_ZOOMED_CLONES;
+            }
+            else if (numZoomedClones < MIN_ZOOMED_CLONES) {
+                numZoomedClones = Math.min(numCodeClones, MIN_ZOOMED_CLONES);
             }
             contentPanel.setLayout(new BorderLayout());
             contentPanel.add(codePanel, BorderLayout.NORTH);
@@ -154,7 +165,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 g2.setClip(codePanelRect);
                 paintPanelBackground();
                 BiConsumer<Rectangle, Color> drawFragment;
-                if (getWidth() <= numCodeFragments) {
+                if (codePanelRect.width <= numCodeFragments) {
                     drawFragment = (rectangle, color) -> {
                         g2.setColor(color);
                         g2.drawLine(rectangle.x, rectangle.y, rectangle.x + rectangle.width, rectangle.y + rectangle.height);
@@ -342,7 +353,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             int barX = zoomedRect.x;
             int barY = zoomedRect.y;
             int barWidth = zoomedRect.width / numZoomedClones;
-            int arcSize = barWidth * 2 / 3;
+            int arcSize = Math.min(barWidth * 2 / 3, 5);
 
             // draw brace
             drawBrace();
@@ -781,7 +792,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 g2.setClip(clonesPanelRect);
                 paintPanelBackground();
                 BiConsumer<Rectangle, Color> drawClone;
-                if (getWidth() <= numCodeClones) {
+                if (clonesPanelRect.width <= numCodeClones) {
                     drawClone = (rectangle, color) -> {
                         g2.setColor(color);
                         g2.drawLine(rectangle.x, rectangle.y, rectangle.x + rectangle.width, rectangle.y + rectangle.height);
