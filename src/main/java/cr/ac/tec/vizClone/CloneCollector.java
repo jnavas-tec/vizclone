@@ -1,9 +1,13 @@
 package cr.ac.tec.vizClone;
 
+import com.intellij.mock.MockPsiManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.util.PsiUtilCore;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -17,34 +21,43 @@ public class CloneCollector {
 
     public void collectJavaClasses(@NotNull Project project) {
         String projectName = project.getName();
-        VirtualFile[] vFiles = ProjectRootManager.getInstance(project)
+        VirtualFile[] vSourceRoots = ProjectRootManager.getInstance(project)
                 .getContentSourceRoots();
-        List<String> javaClassesList = Arrays.stream(vFiles)
-                .map(CloneCollector::collectJavaClassesInFolder)
+        List<VirtualFile> javaVFilesList = Arrays.stream(vSourceRoots)
+                .map(vFile -> CloneCollector.collectJavaClassesInFolder(vFile.getPath(), vFile))
                 .collect(Collectors.toList())
                 .stream()
                 .flatMap(l -> l.stream())
                 .collect(Collectors.toList());
-        String filesList = javaClassesList.stream()
+        List<PsiFile> javaPsiFilesList = PsiUtilCore.toPsiFiles(PsiManager.getInstance(project), javaVFilesList);
+
+        javaPsiFilesList.get(0).accept(new JavaCloneRecursiveElementVisitor());
+        String sourceRoots = Arrays.stream(vSourceRoots)
+                .map(VirtualFile::getPath)
+                .collect(Collectors.joining("\n"));
+        String javaClassesPathList = javaVFilesList.stream()
+                .map(VirtualFile::getPath)
+                .map(path -> path.substring(Arrays.stream(vSourceRoots).map(VirtualFile::getPath).filter(sourcePath -> sourcePath.equals(path.substring(0, sourcePath.length()))).findFirst().orElse("").length()))
+                //.map(path -> Arrays.stream(vSourceRoots).map(VirtualFile::getPath).filter(sourcePath -> sourcePath.equals(path.substring(0, sourcePath.length()))).findFirst().orElse("").toString())
                 .collect(Collectors.joining("\n"));
         Messages.showInfoMessage("Files for the " + projectName +
-                " plugin:\n" + filesList, "Project Properties");
+                " plugin:\n" + javaClassesPathList + "\nSource paths:\n" +
+                sourceRoots, "Project Properties");
     }
 
-    private static List<String> collectJavaClassesInFolder(@NotNull VirtualFile vFile) {
-        VirtualFile[] childrenVFiles = vFile.getChildren();
-        List<String> javaClassesList = Arrays.stream(childrenVFiles)
+    private static List<VirtualFile> collectJavaClassesInFolder(@NotNull String sourcePath, @NotNull VirtualFile vFolder) {
+        VirtualFile[] childrenVFiles = vFolder.getChildren();
+        List<VirtualFile> javaVFilesList = Arrays.stream(childrenVFiles)
                 .filter(vf -> !vf.isDirectory() && vf.getExtension().equals("java"))
-                .map(VirtualFile::getPath)
                 .collect(Collectors.toList());
-        javaClassesList.addAll(
+        javaVFilesList.addAll(
                 Arrays.stream(childrenVFiles)
                         .filter(vf -> vf.isDirectory())
-                        .map(CloneCollector::collectJavaClassesInFolder)
+                        .map(vFile -> CloneCollector.collectJavaClassesInFolder(sourcePath, vFile))
                         .collect(Collectors.toList())
                         .stream()
                         .flatMap(l -> l.stream())
                         .collect(Collectors.toList()));
-        return javaClassesList;
+        return javaVFilesList;
     }
 }
