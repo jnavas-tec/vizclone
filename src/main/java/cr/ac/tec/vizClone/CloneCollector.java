@@ -31,7 +31,8 @@ public class CloneCollector {
                 .collect(Collectors.toList());
         List<PsiFile> javaPsiFilesList = PsiUtilCore.toPsiFiles(PsiManager.getInstance(project), javaVFilesList);
 
-        javaPsiFilesList.get(0).accept(new JavaCloneRecursiveElementVisitor());
+        javaPsiFilesList.stream()
+                .forEach(javaPsiFile -> javaPsiFile.accept(new JavaCloneRecursiveElementVisitor(this)));
         String sourceRoots = Arrays.stream(vSourceRoots)
                 .map(VirtualFile::getPath)
                 .collect(Collectors.joining("\n"));
