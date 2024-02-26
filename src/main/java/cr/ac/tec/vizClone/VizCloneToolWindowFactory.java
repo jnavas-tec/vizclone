@@ -2,10 +2,6 @@ package cr.ac.tec.vizClone;
 
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectFileIndex;
-import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.JBColor;
@@ -13,6 +9,7 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import cr.ac.tec.vizClone.model.Clone;
 import cr.ac.tec.vizClone.model.CloneGraph;
+import cr.ac.tec.vizClone.model.ClonePair;
 import cr.ac.tec.vizClone.model.Fragment;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,9 +21,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.CubicCurve2D;
 import java.awt.geom.GeneralPath;
-import java.util.Arrays;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
 
@@ -65,8 +60,8 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static Rectangle sliderRect = null;
     private static int firstZoomedCloneX = 0;
     private static int firstZoomedClone = 0;
-    private static int numCodeFragments = 1500;
-    private static int numCodeClones = 1500;
+    private static int numCodeFragments = 150;
+    private static int numCodeClones = 150;
     private static int numZoomedClones = MAX_ZOOMED_CLONES;
     private static int codePanelWidth;
     private static int codePanelBars;
@@ -85,9 +80,6 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         VizCloneToolWindowContent toolWindowContent = new VizCloneToolWindowContent(toolWindow);
         Content content = ContentFactory.getInstance().createContent(toolWindowContent.getContentPanel(), "", false);
         toolWindow.getContentManager().addContent(content);
-
-        CloneCollector collector = new CloneCollector();
-        collector.collectJavaClasses(project);
     }
 
     private static class VizCloneToolWindowContent {
@@ -180,7 +172,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                     };
                 }
                 for (int i = 0, x = 0; i < numCodeFragments; i++, x += codePanelBarWidth) {
-                    int weight = graph.getFragments().get(i).getWeight();
+                    int weight = graph.getClonePairs().get(i).getWeight();
                     int colorIndex = graph.getFragmentColorIndex(weight);
                     drawFragment.accept(
                             new Rectangle(
@@ -388,7 +380,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         private void drawZoomedOutClones(int firstZoomedClone, int barX, int barY,int barWidth, int arcSize) {
             for (int i = 0; i < numZoomedClones; i++) {
                 int idx = firstZoomedClone + i;
-                int weight = graph.getClones().get(idx).getWeight();
+                int weight = graph.getClones().get(idx).getMaxWeight();
                 int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
                 drawHighlightedClone(weight, barX, barY, barWidth, barHeight, arcSize);
                 barX += barWidth;
@@ -403,7 +395,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             for (int i = 0, cloneX = barX; i < numZoomedClones; i++, cloneX += barWidth) {
                 int idx = firstZoomedClone + i;
                 if (Math.abs(idx - highlightedClone + 1) > K_WIDTH_2) {
-                    int weight = graph.getClones().get(idx).getWeight();
+                    int weight = graph.getClones().get(idx).getMaxWeight();
                     int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
                     g2.setColor(borderColor);
                     g2.fillRoundRect(cloneX, barY, barWidth, barHeight, arcSize, arcSize);
@@ -420,7 +412,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             int highlightYFactor = zoomedRect.height * (100 + ZOOM_Y_OFFSET * 2 + ZOOM_Y_GROW) / (CloneGraph.MAX_WEIGHT * 100);
 
             int cloneX = zoomedRect.x + barWidth * (highlightedClone - firstZoomedClone - ZOOM_MAX_K / 2 - 1);
-            int weight = graph.getClones().get(highlightedClone).getWeight();
+            int weight = graph.getClones().get(highlightedClone).getMaxWeight();
             int barHeight = weight * highlightYFactor * (100 + ZOOM_MAX_K * ZOOM_Y_SCALE) / 100;
 
             // clear highlighted clones background
@@ -486,8 +478,8 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             if (clearBackground)
                 clearHighlightedClone(cloneX, cloneY, cloneWidth, arcSize);
             else {
-                drawHighlightedClone(clone.getWeight(), cloneX, cloneY, cloneWidth,
-                        clone.getWeight() * highlightYFactor * (100 + k * ZOOM_Y_SCALE) / 100, arcSize);
+                drawHighlightedClone(clone.getMaxWeight(), cloneX, cloneY, cloneWidth,
+                        clone.getMaxWeight() * highlightYFactor * (100 + k * ZOOM_Y_SCALE) / 100, arcSize);
                 drawGrayHighlightedArcs(highlightedClone, cloneX + cloneWidth / 2, cloneY);
             }
         }
@@ -535,7 +527,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                     int stopHere = 1;
                 }
                 Clone clone = graph.getClones().get(idx);
-                Color cloneColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clone.getWeight())]);
+                Color cloneColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clone.getMaxWeight())]);
                 drawCloneArcs(clone, cloneCenterX, cloneCenterY, cloneColor);
                 cloneCenterX += barWidth;
             }
@@ -543,10 +535,12 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         private void drawCloneArcs(Clone clone, int cloneCenterX, int cloneCenterY, Color cloneColor) {
-            for (int f = 0; f < clone.getNumberOfFragments(); f++) {
-                Fragment fragment = graph.getFragments().get(clone.getFragments().get(f).getFragment());
-                if (fragment.getFragment() <= codePanelRect.width) {
-                    Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(fragment.getWeight())]);
+            for (int f = 0; f < clone.getNumberOfClonePairs(); f++) {
+                ClonePair clonePair = graph.getClonePairs().get(clone.getClonePairs().get(f).getIdx());
+                Fragment fragment0 = clonePair.getFragments().get(0);
+                Fragment fragment1 = clonePair.getFragments().get(1);
+                if (fragment0.getIdx() <= codePanelRect.width) {
+                    Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clonePair.getWeight())]);
                     GradientPaint gradientPaint =
                             new GradientPaint(
                                     0,
@@ -555,16 +549,33 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                                     0,
                                     0,
                                     fragmentColor);
-                    drawFragmentArc(fragment, cloneCenterX, cloneCenterY, gradientPaint);
+                    drawFragmentArc(fragment0, cloneCenterX, cloneCenterY, gradientPaint);
+                }
+                if (fragment1.getIdx() <= codePanelRect.width) {
+                    Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clonePair.getWeight())]);
+                    GradientPaint gradientPaint =
+                            new GradientPaint(
+                                    0,
+                                    cloneCenterY,
+                                    cloneColor,
+                                    0,
+                                    0,
+                                    fragmentColor);
+                    drawFragmentArc(fragment1, cloneCenterX, cloneCenterY, gradientPaint);
                 }
             }
         }
 
         private void drawGrayedCloneArcs(Clone clone, int cloneCenterX, int cloneCenterY) {
-            for (int f = 0; f < clone.getNumberOfFragments(); f++) {
-                Fragment fragment = graph.getFragments().get(clone.getFragments().get(f).getFragment());
-                if (fragment.getFragment() <= codePanelRect.width) {
-                    drawFragmentArc(fragment, cloneCenterX, cloneCenterY, borderColor);
+            for (int f = 0; f < clone.getNumberOfClonePairs(); f++) {
+                ClonePair clonePair = graph.getClonePairs().get(clone.getClonePairs().get(f).getIdx());
+                Fragment fragment0 = clonePair.getFragments().get(0);
+                Fragment fragment1 = clonePair.getFragments().get(1);
+                if (fragment0.getIdx() <= codePanelRect.width) {
+                    drawFragmentArc(fragment0, cloneCenterX, cloneCenterY, borderColor);
+                }
+                if (fragment1.getIdx() <= codePanelRect.width) {
+                    drawFragmentArc(fragment1, cloneCenterX, cloneCenterY, borderColor);
                 }
             }
         }
@@ -575,7 +586,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
             int ccY = cloneCenterY - cloneCenterY / 100;
             g2.drawLine(cloneCenterX, cloneCenterY, cloneCenterX, ccY);
             CubicCurve2D curve = new CubicCurve2D.Float();
-            Point fragmentPoint = codePanel.getFragmentLocation(fragment.getFragment());
+            Point fragmentPoint = codePanel.getFragmentLocation(fragment.getIdx());
             curve.setCurve(
                     cloneCenterX, ccY,
                     cloneCenterX, ccY / 2,
@@ -594,10 +605,15 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 int idx = firstZoomedClone + c;
                 if (Math.abs(idx - highlightedClone + 1) > K_WIDTH_2) {
                     Clone clone = graph.getClones().get(idx);
-                    for (int f = 0; f < clone.getNumberOfFragments(); f++) {
-                        Fragment fragment = graph.getFragments().get(clone.getFragments().get(f).getFragment());
-                        if (fragment.getFragment() <= codePanelRect.width) {
-                            drawFragmentArc(fragment, cloneCenterX, cloneCenterY, borderColor);
+                    for (int f = 0; f < clone.getNumberOfClonePairs(); f++) {
+                        ClonePair clonePair = graph.getClonePairs().get(clone.getClonePairs().get(f).getIdx());
+                        Fragment fragment0 = clonePair.getFragments().get(0);
+                        Fragment fragment1 = clonePair.getFragments().get(1);
+                        if (fragment0.getIdx() <= codePanelRect.width) {
+                            drawFragmentArc(fragment0, cloneCenterX, cloneCenterY, borderColor);
+                        }
+                        if (fragment1.getIdx() <= codePanelRect.width) {
+                            drawFragmentArc(fragment1, cloneCenterX, cloneCenterY, borderColor);
                         }
                     }
                 }
@@ -607,7 +623,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         private void drawHighlightedArcs(int highlightedClone, int cloneCenterX, int cloneCenterY) {
-            int weight = graph.getClones().get(highlightedClone).getWeight();
+            int weight = graph.getClones().get(highlightedClone).getMaxWeight();
             Stroke stroke = g2.getStroke();
             g2.setStroke(new BasicStroke(SELECTED_STROKE));
             Clone clone = graph.getClones().get(highlightedClone);
@@ -617,7 +633,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
         }
 
         private void drawGrayHighlightedArcs(int highlightedClone, int cloneCenterX, int cloneCenterY) {
-            int weight = graph.getClones().get(highlightedClone).getWeight();
+            int weight = graph.getClones().get(highlightedClone).getMaxWeight();
             Stroke stroke = g2.getStroke();
             g2.setStroke(new BasicStroke(NON_SELECTED_STROKE));
             Clone clone = graph.getClones().get(highlightedClone);
@@ -810,7 +826,7 @@ public class VizCloneToolWindowFactory implements ToolWindowFactory, DumbAware {
                 int last = first + numZoomedClones;
                 int cloneWidth = clonePanelBarWidth / clonePanelClonesPerBar;
                 for (int i = 0, x = clonesPanelRect.x; i < numCodeClones; i++, x += cloneWidth) {
-                    int height = graph.getClones().get(i).getWeight();
+                    int height = graph.getClones().get(i).getMaxWeight();
                     int colorIndex = graph.getFragmentColorIndex(height);
                     Color color;
                     if (first <= i && i < last)

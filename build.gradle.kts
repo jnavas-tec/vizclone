@@ -2,6 +2,8 @@ plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.8.21"
     id("org.jetbrains.intellij") version "1.13.3"
+    //kotlin("plugin.lombok") version "1.18.30"
+    id("io.freefair.lombok") version "8.4"
 }
 
 group = "cr.ac.tec"
@@ -14,7 +16,8 @@ repositories {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2022.2.5")
+    //version.set("2022.2.5")
+    version.set("2023.1.1")
     type.set("IC") // Target IDE Platform
 
     plugins.set(listOf("java"/* Plugin Dependencies */))

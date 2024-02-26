@@ -31,4 +31,16 @@
         <toolWindow id="Clones" secondary="true" icon="AllIcons.General.InspectionsWarning" anchor="bottom"
                     factoryClass="cr.ac.tec.vizClone.VizCloneToolWindowFactory"/>
     </extensions>
+    <actions>
+        <action id="org.intellij.sdk.action.LoadClonesAction"
+                class="org.intellij.sdk.action.LoadClonesAction"
+                text="Load Clones Action"
+                description="Load Clones Action"
+                icon="AllIcons.Actions.SetDefault">
+            <override-text place="MainMenu" text="Load Clones Action"/>
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default"
+                               first-keystroke="shift control alt C"/>
+        </action>
+    </actions>
 </idea-plugin>

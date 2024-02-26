@@ -1,15 +1,18 @@
 package cr.ac.tec.vizClone.model;
 
+import lombok.Data;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
-
+@Data
 public class CloneGraph {
     private int numClones;
     private ArrayList<Clone> clones;
     private int numFragments;
     private ArrayList<Fragment> fragments;
+    private ArrayList<ClonePair> clonePairs;
     private static final int MAX_CC_LEVELS = 4;
     private static final int MAX_FRAGMENTS = 5;
     public static final int MAX_WEIGHT = MAX_CC_LEVELS * MAX_FRAGMENTS;
@@ -21,39 +24,59 @@ public class CloneGraph {
         this.numClones = numClones;
         this.clones = new ArrayList<Clone>();
         this.fragments = new ArrayList<Fragment>();
+        this.clonePairs = new ArrayList<>();
         for (int c = 0; c < numClones; c++) {
             Clone clone = new Clone();
             this.clones.add(clone);
-            clone.setClone(c);
-            clone.setNumberOfFragments(getNextRandom(2, MAX_FRAGMENTS + 2));
-            clone.setFragments(new ArrayList<Fragment>());
-            clone.setCognitiveComplexity(getNextRandom(1, MAX_CC_LEVELS + 1));
-            clone.setWeight(
-                    (clone.getNumberOfFragments() - 1) *
-                    clone.getCognitiveComplexity());
+            clone.setIdx(c);
+            clone.setNumberOfClonePairs(getNextRandom(2, MAX_FRAGMENTS + 2));
+            clone.setClonePairs(new ArrayList<ClonePair>());
+            clone.setMaxCognitiveComplexity(getNextRandom(1, MAX_CC_LEVELS + 1));
+            clone.setMaxWeight(
+                    (clone.getNumberOfClonePairs() - 1) *
+                    clone.getMaxCognitiveComplexity());
         }
         for (int f = 0; f < numFragments; f++) {
             Fragment fragment = new Fragment();
             this.fragments.add(fragment);
-            fragment.setFragment(f);
+            fragment.setIdx(f);
             fragment.setNumberOfClones(0);
             fragment.setClones(new ArrayList<Clone>());
             fragment.setCognitiveComplexity(getNextRandom(1, MAX_CC_LEVELS + 1));
-            fragment.setWeight(
-                    (getNextRandom(2, MAX_FRAGMENTS + 2) - 1) *
-                            fragment.getCognitiveComplexity());
+
+            ClonePair clonePair = new ClonePair();
+            clonePair.setIdx(f);
+            this.clonePairs.add(clonePair);
         }
         ArrayList<Integer> s = getShuffledFragments(numFragments, null);
+        ArrayList<Integer> cp = getShuffledFragments(numFragments, null);
         int n = 0;
+        int p = 0;
         for (int c = 0; c < numClones; c++) {
             Clone clone = this.clones.get(c);
-            for (int f = 0; f < clone.getNumberOfFragments(); f++) {
+            for (int f = 0; f < clone.getNumberOfClonePairs(); f++) {
                 if (n == numFragments) { s = getShuffledFragments(numFragments, s); n = 0; }
-                Fragment fragment = this.fragments.get(s.get(n));
-                fragment.getClones().add(clone);
-                fragment.setNumberOfClones(fragment.getNumberOfClones() + 1);
-                clone.getFragments().add(fragment);
-                n++;
+                if (p == numFragments) { cp = getShuffledFragments(numFragments, cp); p = 0; }
+
+                Fragment fragment0 = this.fragments.get(s.get(n++));
+                fragment0.getClones().add(clone);
+                fragment0.setNumberOfClones(fragment0.getNumberOfClones() + 1);
+                Fragment fragment1 = this.fragments.get(s.get(n++));
+                fragment1.getClones().add(clone);
+                fragment1.setNumberOfClones(fragment1.getNumberOfClones() + 1);
+
+                ClonePair clonePair = this.clonePairs.get(cp.get(p++));
+                clonePair.setClone(clone);
+                clonePair.getFragments().add(fragment0);
+                clonePair.getFragments().add(fragment1);
+                clonePair.setMaxNumberOfStatements(Math.max(fragment0.getNumberOfStatements(), fragment1.getNumberOfStatements()));
+                clonePair.setMaxCognitiveComplexity(Math.max(fragment0.getCognitiveComplexity(), fragment1.getCognitiveComplexity()));
+                clonePair.setWeight((getNextRandom(2, MAX_FRAGMENTS + 2) - 1) * clonePair.getMaxCognitiveComplexity());
+
+                clone.getClonePairs().add(clonePair);
+                clone.setMaxWeight(Math.max(clone.getMaxWeight(), clonePair.getWeight()));
+                clone.setMaxCognitiveComplexity(Math.max(clone.getMaxCognitiveComplexity(), clonePair.getMaxCognitiveComplexity()));
+                clone.setMaxNumberOfStatements(Math.max(clone.getMaxNumberOfStatements(), clonePair.getMaxNumberOfStatements()));
             }
         }
     }
@@ -63,38 +86,6 @@ public class CloneGraph {
         this.numClones = clones.size();
         this.fragments = fragments;
         this.numFragments = fragments.size();
-    }
-
-    public int getNumClones() {
-        return numClones;
-    }
-
-    public void setNumClones(int numClones) {
-        this.numClones = numClones;
-    }
-
-    public ArrayList<Clone> getClones() {
-        return clones;
-    }
-
-    public void setClones(ArrayList<Clone> clones) {
-        this.clones = clones;
-    }
-
-    public int getNumFragments() {
-        return numFragments;
-    }
-
-    public void setNumFragments(int numFragments) {
-        this.numFragments = numFragments;
-    }
-
-    public ArrayList<Fragment> getFragments() {
-        return fragments;
-    }
-
-    public void setFragments(ArrayList<Fragment> fragments) {
-        this.fragments = fragments;
     }
 
     private ArrayList<Integer> getShuffledFragments(int n, ArrayList<Integer> source) {
