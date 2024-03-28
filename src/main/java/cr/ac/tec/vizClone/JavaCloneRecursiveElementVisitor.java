@@ -102,7 +102,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         boolean previousVisitingCodeBlock = visitingCodeBlock;
         visitingCodeBlock = true;
         super.visitCodeBlock(block);
-        PsiStatement[] statements = block.getStatements();
+        //PsiStatement[] statements = block.getStatements();
         visitingCodeBlock = previousVisitingCodeBlock;
     }
 
@@ -120,12 +120,12 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         CMethodDict.addStatement(cMethod.getIdx(), cStatement);
     }
 
-    private void addStatement(PsiKeyword psiKeyword) {
+    private void addStatement(PsiStatement psiStatement, PsiKeyword psiKeyword) {
         String statementName = psiKeyword.getNode().getElementType().getDebugName();
         Integer statementId = StatementDict.getStatementId(statementName);
         cStatement = new CStatement();
         cStatement.setStatementId(statementId);
-        cStatement.setPsiStatement(null);
+        cStatement.setPsiStatement(psiStatement);
         cStatement.setCMethod(cMethod);
         cStatement.setFromOffset(psiKeyword.getTextRange().getStartOffset());
         cStatement.setToOffset(psiKeyword.getTextRange().getEndOffset());
@@ -198,16 +198,11 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         if (cStatement != null &&
             "IF_STATEMENT".equals(StatementDict.getStatement(cStatement.getStatementId())) &&
             "ELSE_KEYWORD".equals(keyword.getTokenType().getDebugName())) {
-            addStatement(keyword);
+            addStatement(cStatement.getPsiStatement(), keyword);
             cMethod.setNumTokens(cMethod.getNumTokens() + 1);
         }
         super.visitKeyword(keyword);
     }
-
-// TODO: Instead of lines use statements
-    // TODO: Register all tokens and assign consecutive id (two way dictionary)
-    // TODO: Port Needleman-Wunsch algorithm from C#
-    // TODO: If match is not good, implement similarity matrix
 
     @Override
     public void visitElement(@NotNull PsiElement element) {

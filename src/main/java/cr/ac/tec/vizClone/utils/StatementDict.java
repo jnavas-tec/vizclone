@@ -8,6 +8,11 @@ public final class StatementDict {
     private static List<Statement> statementArray = new ArrayList<>();
     private static Hashtable<String, Integer> statementDict = new Hashtable<>();
 
+    public static void reset() {
+        statementArray = new ArrayList<>();
+        statementDict = new Hashtable<>();
+    }
+
     private static class Statement {
         Integer statementId;
         String statement;

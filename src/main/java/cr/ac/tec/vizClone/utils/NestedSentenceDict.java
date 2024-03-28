@@ -8,6 +8,10 @@ public class NestedSentenceDict
 {
     private static Hashtable<String, Set<String>> nestedSentencesDict = new Hashtable<>();
 
+    static public void reset() {
+        nestedSentencesDict = new Hashtable<>();
+    }
+
     static public Hashtable<String, Set<String>> getNestedSentencesDict() {
         return nestedSentencesDict;
     }

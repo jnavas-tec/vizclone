@@ -13,6 +13,10 @@ public class CloneGraph {
     private int numFragments;
     private ArrayList<Fragment> fragments;
     private ArrayList<ClonePair> clonePairs;
+    private int minWeight = 90;
+    private int maxWeight = 100;
+    private int weightRange = 100 - 90;
+    private int numWeightLevels = 4;
     private static final int MAX_CC_LEVELS = 4;
     private static final int MAX_FRAGMENTS = 5;
     public static final int MAX_WEIGHT = MAX_CC_LEVELS * MAX_FRAGMENTS;
@@ -40,8 +44,8 @@ public class CloneGraph {
             Fragment fragment = new Fragment();
             this.fragments.add(fragment);
             fragment.setIdx(f);
-            fragment.setNumberOfClones(0);
-            fragment.setClones(new ArrayList<Clone>());
+            //fragment.setNumberOfClonePairs(0);
+            //fragment.setClones(new ArrayList<Clone>());
             fragment.setCognitiveComplexity(getNextRandom(1, MAX_CC_LEVELS + 1));
 
             ClonePair clonePair = new ClonePair();
@@ -59,11 +63,11 @@ public class CloneGraph {
                 if (p == numFragments) { cp = getShuffledFragments(numFragments, cp); p = 0; }
 
                 Fragment fragment0 = this.fragments.get(s.get(n++));
-                fragment0.getClones().add(clone);
-                fragment0.setNumberOfClones(fragment0.getNumberOfClones() + 1);
+                //fragment0.getClones().add(clone);
+                //fragment0.setNumberOfClonePairs(fragment0.getNumberOfClonePairs() + 1);
                 Fragment fragment1 = this.fragments.get(s.get(n++));
-                fragment1.getClones().add(clone);
-                fragment1.setNumberOfClones(fragment1.getNumberOfClones() + 1);
+                //fragment1.getClones().add(clone);
+                //fragment1.setNumberOfClonePairs(fragment1.getNumberOfClonePairs() + 1);
 
                 ClonePair clonePair = this.clonePairs.get(cp.get(p++));
                 clonePair.setClone(clone);
@@ -88,6 +92,16 @@ public class CloneGraph {
         this.numFragments = fragments.size();
     }
 
+    public void setMinWeight(int minWeight) {
+        this.minWeight = minWeight;
+        this.weightRange = this.maxWeight - this.minWeight;
+    }
+
+    public void setMaxWeight(int maxWeight) {
+        this.maxWeight = maxWeight;
+        this.weightRange = this.maxWeight - this.minWeight;
+    }
+
     private ArrayList<Integer> getShuffledFragments(int n, ArrayList<Integer> source) {
         if (source == null) {
             source = new ArrayList<>();
@@ -102,6 +116,20 @@ public class CloneGraph {
     }
 
     public int getFragmentColorIndex(int weight) {
-        return ((weight + MAX_FRAGMENTS - 1) / MAX_FRAGMENTS) - 1;
+        //int weightLevels = 100 / numWeightLevels;
+        //int level = (weight - minWeight) * 100 / weightRange;
+        //return Math.min(numWeightLevels - 1, level / weightLevels);
+        return ((weight + numWeightLevels) / (numWeightLevels + 1)) - 1;
+    }
+
+    public void fixWeights() {
+        for (Clone c : clones) {
+            c.setMaxSim(c.getMaxWeight());
+            c.setMaxWeight(((c.getMaxWeight() - minWeight) * 19 / weightRange) + 1);
+            for (ClonePair cp : c.getClonePairs()) {
+                cp.setSim(cp.getWeight());
+                cp.setWeight(((cp.getWeight() - minWeight) * 19 / weightRange) + 1);
+            }
+        }
     }
 }

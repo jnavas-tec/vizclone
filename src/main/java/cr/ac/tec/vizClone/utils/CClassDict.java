@@ -17,6 +17,11 @@ public class CClassDict {
     private static List<CClass> classArray = new ArrayList<>();
     private static Hashtable<String, Integer> classDict = new Hashtable<>();
 
+    static public void reset() {
+        classArray = new ArrayList<>();
+        classDict = new Hashtable<>();
+    }
+
     static public Integer getClassIdx(PsiClass psiClass, List<LineColumn> lineColumns) {
         Integer index = classDict.get(psiClass.getQualifiedName());
         if (index == null) {

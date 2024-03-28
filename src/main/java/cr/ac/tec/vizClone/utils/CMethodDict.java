@@ -12,8 +12,13 @@ import java.util.Hashtable;
 import java.util.List;
 
 public class CMethodDict {
-    private static final List<CMethod> methodArray = new ArrayList<>();
-    private static final Hashtable<String, Integer> methodDict = new Hashtable<>();
+    private static List<CMethod> methodArray = new ArrayList<>();
+    private static Hashtable<String, Integer> methodDict = new Hashtable<>();
+
+    static public void reset() {
+        methodArray = new ArrayList<>();
+        methodDict = new Hashtable<>();
+    }
 
     static public Integer getMethodIdx(PsiMethod psiMethod, List<LineColumn> lineColumns) {
         PsiClass containingClass = psiMethod.getContainingClass();

@@ -6,8 +6,8 @@ import cr.ac.tec.vizClone.utils.FragmentDict;
 import java.util.List;
 
 public class SmithWatermanGotoh {
-    private int m;                // number of rows
-    private int n;                // number of columns
+    private int m;                // number of rows for sentences
+    private int n;                // number of columns for sentences
     private CMethod methodA;      // left side method
     private CMethod methodB;      // upper side method
     private List<CStatement> a;   // rows (left side) statements
@@ -16,30 +16,33 @@ public class SmithWatermanGotoh {
     private int beta1;            // inter sentences gap penalty (may be negative: reward)
     private int reward1;          // inter sentences match reward (must be positive)
     private int penalty1;         // inter sentences mismatch penalty (must be positive)
-    private int[][] h;            // score matrix
-    private int[][] p;            // vertical gap score matrix
-    private int[][] q;            // horizontal gap score matrix
+    private int[][] h;            // score matrix for statements
+    private int[][] p;            // vertical gap score matrix for statements
+    private int[][] q;            // horizontal gap score matrix for statements
     private int[][] a0;           // vertical start of clone
     private int[][] b0;           // horizontal start of clone
+    private int[][] at;           // number of tokens in left sentences
+    private int[][] bt;           // number of tokens in upper sentences
     //private char[][] d;
-    private double[][] s;
-    private int maxt;
-    private int m2;
-    private int n2;
-    private int alpha2;
-    private int beta2;
-    private int reward2;
-    private int penalty2;
-    private int[][] h2;
-    private int[][] p2;
-    private int[][] q2;
+    private double[][] s;         // similitude in range 0..1000 for sentences
+    private int maxt;             // maximum number of tokens in any sentence
+    private int m2;               // number of rows for tokens
+    private int n2;               // number of columns for tokens
+    private int alpha2;           // inter tokens gap opening penalty (may be negative: reward)
+    private int beta2;            // inter tokens gap penalty (may be negative: reward)
+    private int reward2;          // inter tokens match reward (must be positive)
+    private int penalty2;         // inter tokens mismatch penalty (must be positive)
+    private int[][] h2;           // score matrix for tokens
+    private int[][] p2;           // vertical gap score matrix for tokens
+    private int[][] q2;           // horizontal gap score matrix for tokens
     //private char[][] d2;
-    private double[][] s2;
+    private double[][] s2;        // similitude in range 0..1000 for tokens
     //private int[] cam_sc_index;
     //private int[][] cam_sc_matrix;
-    private double min_sim = 0.8;
-    private double min_sent_sim = 0.8;
-    private int min_sent = 10;
+    private double minSim = MIN_SIM;
+    private double minSentSim = MIN_SENT_SIM;
+    private int minSent = MIN_SENT;
+    private int minTokens = MIN_TOKENS;
 
     private Boolean configured;
 
@@ -48,10 +51,22 @@ public class SmithWatermanGotoh {
         configured = false;
     }
 
+    public static final double ALPHA1 = 1.0;
+    public static final double BETA1 = 1.0 / 3.0;
+    public static final double REWARD1 = 2.0;
+    public static final double PENALTY1 = 1.0 / 3.0;
+    public static final double ALPHA2 = 1.0;
+    public static final double BETA2 = 1.0 / 3.0;
+    public static final double REWARD2 = 2.0;
+    public static final double PENALTY2 = 1.0 / 3.0;
+    public static final double MIN_SIM = 0.9;
+    public static final double MIN_SENT_SIM = 0.9;
+    public static final int MIN_SENT = 10;
+    public static final int MIN_TOKENS = 50;
+
     public void init()
     {
-        this.init(1.0, 1.0/3.0, 2.0, 1.0/3.0,
-                1.0, 1.0/3.0, 2.0, 1.0/3.0);
+        this.init(ALPHA1, BETA1, REWARD1, PENALTY1, ALPHA2, BETA2, REWARD2, PENALTY2);
     }
 
     public void init(double alpha1, double beta1, double reward1, double penalty1,
@@ -72,27 +87,30 @@ public class SmithWatermanGotoh {
     }
 
     public boolean config(CMethod a, CMethod b) {
-        return config(a, b, this.min_sim, this.min_sent_sim, this.min_sent);
+        return config(a, b, this.minSim, this.minSentSim, this.minTokens, this.minSent);
     }
 
-    public boolean config(CMethod a, CMethod b, double minSim, double minSentSim, int minSent) {
+    public boolean config(CMethod a, CMethod b, double minSim, double minSentSim, int minTokens, int minSent) {
         this.methodA = a;
         this.methodB = b;
-        this.min_sim = minSim;
-        this.min_sent_sim = minSentSim;
-        this.min_sent = minSent;
+        this.minSim = minSim;
+        this.minSentSim = minSentSim;
+        this.minTokens = minTokens;
+        this.minSent = minSent;
         this.a = a.getCStatements();
         this.b = b.getCStatements();
         this.m = this.a.size() + 1;
         this.n = this.b.size() + 1;
 
-        if (minSent > this.a.size() || minSent > this.b.size()) return false;
+        if (minTokens > a.getNumTokens() || minTokens > b.getNumTokens()) return false;
 
         this.h  = new int[m][n];
         this.p  = new int[m][n];
         this.q  = new int[m][n];
         this.a0 = new int[m][n];
         this.b0 = new int[m][n];
+        this.at = new int[m][n];
+        this.bt = new int[m][n];
         //this.d  = new char[m][n];
         this.s  = new double[m][n];
 
@@ -128,6 +146,8 @@ public class SmithWatermanGotoh {
             {
                 //this.d[r][c] = ' ';
                 this.s[r][c] = 0;
+                this.at[r][c] = 0;
+                this.bt[r][c] = 0;
             }
         return true;
     }
@@ -145,6 +165,8 @@ public class SmithWatermanGotoh {
             this.s = null;
             this.a0 = null;
             this.b0 = null;
+            this.at = null;
+            this.bt = null;
             this.h2 = null;
             this.p2 = null;
             this.q2 = null;
@@ -159,18 +181,18 @@ public class SmithWatermanGotoh {
     }
 
     public Clone getClone() {
-        return getClone(this.min_sim, this.min_sent_sim, this.min_sent);
+        return getClone(this.minSim, this.minSentSim, this.minTokens, this.minSent);
     }
 
-    public Clone getClone(double MinSim, double MinSentSim, int MinSent)
+    public Clone getClone(double minSim, double minSentSim, int minTokens, int minSent)
     {
         Clone clone = null;
 
         int maxsim = 0;
         int maxi = 0;
         int maxj = 0;
-        int minsim = (int)(MinSim * 1000);
-        int minsentsim = (int)(MinSentSim * 1000);
+        int minsim = (int)(minSim * 1000);
+        int minsentsim = (int)(minSentSim * 1000);
         int maxintsimvalue = 0;
 
         if (this.configured)
@@ -247,14 +269,20 @@ public class SmithWatermanGotoh {
                     this.h[i][j] = maximum;
                     this.s[i][j] = simValue(maximum, i, j);
 
+                    this.at[i][j] = this.a.get(i - 1).getTokens().size() + (this.a0[i][j] < i - 1 ? this.at[i - 1][j] : 0);
+                    this.bt[i][j] = this.b.get(j - 1).getTokens().size() + (this.b0[i][j] < j - 1 ? this.bt[i][j - 1] : 0);
+
                     // Check minimum sentences and similitude parameters
                     int simnew = intSimValue(maximum, i, j);
-                    if (hasMinSentences(MinSent, i, j) && (simnew >= minsim))
+                    if (hasMinSentences(minSent, i, j) && hasMinTokens(minTokens, i, j) && (simnew >= minsim))
                     {
                         int minsx = minSentences(maxi, maxj);
                         int mins = minSentences(i, j);
+                        int mintx = minTokens(maxi, maxj);
+                        int mint = minTokens(i, j);
+                        //System.out.printf("Min Tokens = %d, i = %d, j = %d\n", mint, i, j);
 
-                        if ((minsx <= mins) && (simnew >= maxintsimvalue))
+                        if ((minsx <= mins) && (mintx <= mint) && (simnew >= maxintsimvalue))
                         {
                             maxsim = maximum;
                             maxi = i;
@@ -272,15 +300,20 @@ public class SmithWatermanGotoh {
                 //clone.setWeight(simValue(maxsim, maxi, maxj));
 
                 Fragment fragmentA = FragmentDict.getFragment(this.methodA, this.a0[maxi][maxj], maxi - 1);
-                fragmentA.setNumberOfClones(1);
+                fragmentA.setClonePair(clonePair);
+                fragmentA.setIdxOnClonePair(0);
 
                 Fragment fragmentB = FragmentDict.getFragment(this.methodB, this.b0[maxi][maxj], maxj - 1);
-                fragmentB.setNumberOfClones(1);
+                fragmentB.setClonePair(clonePair);
+                fragmentB.setIdxOnClonePair(1);
 
+                clonePair.setClone(clone);
                 clonePair.getFragments().add(fragmentA);
                 clonePair.getFragments().add(fragmentB);
                 clonePair.setWeight(maxintsimvalue / 10);
                 clonePair.setMaxNumberOfStatements(Math.max(fragmentA.getNumberOfStatements(), fragmentB.getNumberOfStatements()));
+                clone.getMethods().add(this.methodA);
+                clone.getMethods().add(this.methodB);
                 clone.getClonePairs().add(clonePair);
                 clone.setNumberOfClonePairs(1);
                 clone.setMaxNumberOfStatements(clonePair.getMaxNumberOfStatements());
@@ -302,6 +335,11 @@ public class SmithWatermanGotoh {
         return Math.min(i - this.a0[i][j], j - this.b0[i][j]);
     }
 
+    private int minTokens(int i, int j)
+    {
+        return Math.min(this.at[i][j], this.bt[i][j]);
+    }
+
     private int gapSentences(int i, int j)
     {
         return Math.abs(i - this.a0[i][j] - j + this.b0[i][j]);
@@ -310,6 +348,11 @@ public class SmithWatermanGotoh {
     private Boolean hasMinSentences(int min, int i, int j)
     {
         return (Math.min(i - this.a0[i][j], j - this.b0[i][j]) >= min);
+    }
+
+    private Boolean hasMinTokens(int min, int i, int j)
+    {
+        return (Math.min(this.at[i][j], this.bt[i][j]) >= min);
     }
 
     private Double simValue(int sim, int i, int j)

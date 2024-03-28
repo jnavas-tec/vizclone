@@ -20,4 +20,8 @@ public class CMethod {
     private CClass cClass;
     private List<CStatement> cStatements = new ArrayList<>();
     private PsiMethod psiMethod;
+
+    public String toString() {
+        return String.format("idx:%d  name:%s", idx, name);
+    }
 }

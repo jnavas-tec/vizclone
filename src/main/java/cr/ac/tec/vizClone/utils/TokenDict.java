@@ -9,6 +9,11 @@ public final class TokenDict {
     private static List<Token> tokensArray = new ArrayList<>();
     private static Hashtable<String, Integer> tokensDict = new Hashtable<>();
 
+    static public void reset() {
+        tokensArray = new ArrayList<>();
+        tokensDict = new Hashtable<>();
+    }
+
     private static class Token {
         Integer tokenId;
         String  token;

@@ -14,6 +14,11 @@ public class CPackageDict {
     private static List<CPackage> packagesArray = new ArrayList<>();
     private static Hashtable<String, Integer> packagesDict = new Hashtable<>();
 
+    static public void reset() {
+        packagesArray = new ArrayList<>();
+        packagesDict = new Hashtable<>();
+    }
+
     static public Integer getPackageIdx(PsiPackage psiPackage) {
         Integer index = packagesDict.get(psiPackage.getQualifiedName());
         if (index == null) {

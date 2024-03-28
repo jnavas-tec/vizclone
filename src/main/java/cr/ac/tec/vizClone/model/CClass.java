@@ -19,4 +19,8 @@ public class CClass {
     private CPackage cPackage;
     private List<CMethod> cMethods = new ArrayList<>();
     private PsiClass psiClass;
+
+    public String toString() {
+        return String.format("idx:%d  name:%s", idx, name);
+    }
 }

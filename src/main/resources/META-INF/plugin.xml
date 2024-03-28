@@ -28,15 +28,21 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="Clones" secondary="true" icon="AllIcons.General.InspectionsWarning" anchor="bottom"
+        <!--
+        <toolWindow id="VizClones" secondary="true" icon="AllIcons.Actions.ToggleVisibility" anchor="bottom"
                     factoryClass="cr.ac.tec.vizClone.VizCloneToolWindowFactory"/>
+        -->
+        <!--
+        <toolWindow id="DiffClones" secondary="true" icon="AllIcons.Diff.ApplyNotConflicts" anchor="bottom"
+                    factoryClass="cr.ac.tec.vizClone.DiffCloneToolWindowFactory"/>
+        -->
     </extensions>
     <actions>
         <action id="org.intellij.sdk.action.LoadClonesAction"
                 class="org.intellij.sdk.action.LoadClonesAction"
                 text="Load Clones Action"
                 description="Load Clones Action"
-                icon="AllIcons.Actions.SetDefault">
+                icon="AllIcons.Actions.ListChanges">
             <override-text place="MainMenu" text="Load Clones Action"/>
             <add-to-group group-id="ToolsMenu" anchor="first"/>
             <keyboard-shortcut keymap="$default"
