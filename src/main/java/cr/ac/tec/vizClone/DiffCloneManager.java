@@ -32,9 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service(Service.Level.PROJECT)
@@ -93,6 +91,7 @@ public final class DiffCloneManager {
                 duplicates[d] = new PsiFragment[2];
                 duplicates[d][0] = new TreePsiFragment(null, statementsFromA, fromA, toA);
                 duplicates[d][1] = new TreePsiFragment(null, statementsFromB, fromB, toB);
+                duplicates[d][0].setCost(clonePair.getSim());
             }
             /*
             Fragment fragmentA = clones.get(c).getClonePairs().get(0).getFragments().get(0);
@@ -110,6 +109,11 @@ public final class DiffCloneManager {
             duplicates[c][1] = new TreePsiFragment(null, statementsFromB, fromB, toB);
              */
         }
+        Arrays.sort(duplicates, new Comparator<PsiFragment[]>() {
+            public int compare(PsiFragment[] f1, PsiFragment[] f2) {
+                return f2[0].getCost() - f1[0].getCost();
+            }
+        });
         return new DupInfo() {
             private final Int2ObjectMap<GroupNodeDescription> myPattern2Description = new Int2ObjectOpenHashMap<>();
 

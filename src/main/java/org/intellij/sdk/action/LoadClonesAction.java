@@ -26,7 +26,6 @@ public class LoadClonesAction extends AnAction {
         PsiDocumentManager.getInstance(event.getProject()).commitAllDocuments();
         CloneCollector collector = new CloneCollector();
         collector.collectJavaClones(event.getProject());
-        DiffCloneManager.getInstance(event.getProject()).showDiffClones(collector.getClones());
-        VizCloneToolWindowFactory.getInstance(event.getProject(), collector.getClones(), collector.getFragments()).showVizClones();
+        VizCloneToolWindowFactory.getInstance(event.getProject(), collector, collector.getClones(), collector.getFragments()).showVizClones();
     }
 }

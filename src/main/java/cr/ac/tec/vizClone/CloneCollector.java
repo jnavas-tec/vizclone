@@ -103,6 +103,10 @@ public class CloneCollector {
                 return f1.getKey().compareTo(f2.getKey());
             }
         });
+        // fix fragments indices
+        for (int f = 0; f < fragments.size(); f++) {
+            fragments.get(f).setIdx(f);
+        }
     }
 
     private Hashtable<Integer, Integer> collectFragmentsMap() {

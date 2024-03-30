@@ -21,6 +21,9 @@ public class CloneGraph {
     private static final int MAX_FRAGMENTS = 5;
     public static final int MAX_WEIGHT = MAX_CC_LEVELS * MAX_FRAGMENTS;
 
+    private boolean selected = false;
+    private int selectedClone;
+
     private final Random r = new Random();
 
     public CloneGraph(int numFragments, int numClones) {
