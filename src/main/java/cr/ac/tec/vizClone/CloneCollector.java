@@ -20,6 +20,11 @@ import java.util.stream.Collectors;
 @Data
 public class CloneCollector {
 
+    private static final int MIN_SENT = 10;
+    private static final double MIN_SIM = 0.7;
+    private static final double MIN_SENT_SIM = 0.7;
+    private static final int MIN_TOKENS = 50;
+
     private ArrayList<Clone> clones = new ArrayList<>();
     private ArrayList<Fragment> fragments = new ArrayList<>();
 
@@ -66,15 +71,14 @@ public class CloneCollector {
         SmithWatermanGotoh swg = new SmithWatermanGotoh();
         this.clones = new ArrayList<>();
         Clone clone;
-        int minSent = 10;
         for (int i = 0; i < numMethods; i++) {
             CMethod methodA = methods.get(i);
-            if (methodA.getCStatements().size() >= minSent) {
+            if (methodA.getCStatements().size() >= MIN_SENT) {
                 for (int j = i + 1; j <= numMethods; j++) {
                     CMethod methodB = methods.get(j);
-                    if (methodB.getCStatements().size() >= minSent) {
+                    if (methodB.getCStatements().size() >= MIN_SENT) {
                         swg.init();
-                        if (swg.config(methodA, methodB, 0.7, 0.7, 50, minSent)) {
+                        if (swg.config(methodA, methodB, MIN_SIM, MIN_SENT_SIM, MIN_TOKENS, MIN_SENT)) {
                             clone = swg.getClone();
                             if (clone != null) {
                                 clone.setIdx(clones.size());

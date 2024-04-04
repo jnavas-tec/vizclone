@@ -23,7 +23,6 @@ public class SmithWatermanGotoh {
     private int[][] b0;           // horizontal start of clone
     private int[][] at;           // number of tokens in left sentences
     private int[][] bt;           // number of tokens in upper sentences
-    //private char[][] d;
     private double[][] s;         // similitude in range 0..1000 for sentences
     private int maxt;             // maximum number of tokens in any sentence
     private int m2;               // number of rows for tokens
@@ -35,10 +34,7 @@ public class SmithWatermanGotoh {
     private int[][] h2;           // score matrix for tokens
     private int[][] p2;           // vertical gap score matrix for tokens
     private int[][] q2;           // horizontal gap score matrix for tokens
-    //private char[][] d2;
     private double[][] s2;        // similitude in range 0..1000 for tokens
-    //private int[] cam_sc_index;
-    //private int[][] cam_sc_matrix;
     private double minSim = MIN_SIM;
     private double minSentSim = MIN_SENT_SIM;
     private int minSent = MIN_SENT;
@@ -81,8 +77,6 @@ public class SmithWatermanGotoh {
         this.reward2 = (int)(reward2 * 1000.0);
         this.penalty2 = (int)(penalty2 * 1000.0);
 
-        //initializeCAMSCIndexAndMatrix();
-
         this.configured = true;
     }
 
@@ -111,7 +105,6 @@ public class SmithWatermanGotoh {
         this.b0 = new int[m][n];
         this.at = new int[m][n];
         this.bt = new int[m][n];
-        //this.d  = new char[m][n];
         this.s  = new double[m][n];
 
         for (int i = 0; i < this.m; i++) { this.h[i][0] = this.p[i][0] = this.q[i][0] = this.a0[i][0] = 0; }
@@ -124,7 +117,6 @@ public class SmithWatermanGotoh {
         this.h2 = new int[this.maxt][this.maxt];
         this.p2 = new int[this.maxt][this.maxt];
         this.q2 = new int[this.maxt][this.maxt];
-        //this.d2 = new char[this.maxt][this.maxt];
         this.s2 = new double[this.maxt][this.maxt];
         this.h2[0][0] = this.p2[0][0] = this.q2[0][0] = 0;
         this.h2[1][0] = this.h2[0][1] = -this.alpha2 - this.beta2;
@@ -137,14 +129,12 @@ public class SmithWatermanGotoh {
         for (int r = 0; r < this.maxt; r++)
             for (int c = 0; c < this.maxt; c++)
             {
-                //this.d2[r][c] = ' ';
                 this.s2[r][c] = 0;
             }
 
         for (int r = 0; r < this.m; r++)
             for (int c = 0; c < this.n; c++)
             {
-                //this.d[r][c] = ' ';
                 this.s[r][c] = 0;
                 this.at[r][c] = 0;
                 this.bt[r][c] = 0;
@@ -161,7 +151,6 @@ public class SmithWatermanGotoh {
             this.h = null;
             this.p = null;
             this.q = null;
-            //this.d = null;
             this.s = null;
             this.a0 = null;
             this.b0 = null;
@@ -170,11 +159,7 @@ public class SmithWatermanGotoh {
             this.h2 = null;
             this.p2 = null;
             this.q2 = null;
-            //this.d2 = null;
             this.s2 = null;
-
-            //cam_sc_index = null;
-           // cam_sc_matrix = null;
 
             this.configured = false;
         }
@@ -216,10 +201,7 @@ public class SmithWatermanGotoh {
                             this.a0[i][j] = this.a0[i - 1][j];
                             this.b0[i][j] = this.b0[i - 1][j];
                         }
-
                         maximum = this.p[i][j];
-
-                        //this.d[i][j] = '\u2191';
                     }
 
                     // Horizontal gap/deletion
@@ -232,16 +214,11 @@ public class SmithWatermanGotoh {
                             this.a0[i][j] = this.a0[i][j - 1];
                             this.b0[i][j] = this.b0[i][j - 1];
                         }
-
                         maximum = this.q[i][j];
-
-                        //this.d[i][j] = '\u2190';
                     }
 
                     // Match/Substitution value
                     int comp_result = this.h[i - 1][j - 1];
-                    //int cam_sc_val = cam_sc_matrix[cam_sc_index[(int)a.get(i - 1).getKind()]][cam_sc_index[(int)b.get(j - 1).getKind()]];
-                    //if (cam_sc_val > 0)
                     if (this.a.get(i - 1).getStatementId() == this.b.get(j - 1).getStatementId())
                     {
                         int sent_sim = getSentencesSimilitude(i - 1, j - 1); // returns [0..1000] // * cam_sc_val / 100;
@@ -262,8 +239,6 @@ public class SmithWatermanGotoh {
                             this.b0[i][j] = this.b0[i - 1][j - 1];
                         }
                         maximum = comp_result;
-
-                        //this.d[i][j] = '\u2196';
                     }
 
                     this.h[i][j] = maximum;
@@ -280,7 +255,6 @@ public class SmithWatermanGotoh {
                         int mins = minSentences(i, j);
                         int mintx = minTokens(maxi, maxj);
                         int mint = minTokens(i, j);
-                        //System.out.printf("Min Tokens = %d, i = %d, j = %d\n", mint, i, j);
 
                         if ((minsx <= mins) && (mintx <= mint) && (simnew >= maxintsimvalue))
                         {
@@ -297,7 +271,6 @@ public class SmithWatermanGotoh {
             {
                 clone = new Clone();
                 ClonePair clonePair = new ClonePair();
-                //clone.setWeight(simValue(maxsim, maxi, maxj));
 
                 Fragment fragmentA = FragmentDict.getFragment(this.methodA, this.a0[maxi][maxj], maxi - 1);
                 fragmentA.setClonePair(clonePair);
@@ -318,12 +291,6 @@ public class SmithWatermanGotoh {
                 clone.setNumberOfClonePairs(1);
                 clone.setMaxNumberOfStatements(clonePair.getMaxNumberOfStatements());
                 clone.setMaxWeight(clonePair.getWeight());
-
-                // weight: maxintsimvalue / 10
-
-                // how to create the clones?
-                // how to merge fragment pairs into one clone?
-                // how to sort fragments and clones?
             }
         }
 
@@ -390,7 +357,6 @@ public class SmithWatermanGotoh {
                     // Vertical gap/deletion
                     int maxpq = this.p2[i][j] = Math.max(this.h2[i - 1][j] - this.alpha2 - this.beta2,
                             this.p2[i - 1][j] - this.beta2);
-                    //this.d2[i][j] = '\u2191';
 
                     // Horizontal gap/deletion
                     this.q2[i][j] = Math.max(this.h2[i][j - 1] - this.alpha2 - this.beta2,
@@ -400,7 +366,6 @@ public class SmithWatermanGotoh {
                     if (this.q2[i][j] > this.p2[i][j])
                     {
                         maxpq = this.q2[i][j];
-                        //this.d2[i][j] = '\u2190';
                     }
 
                     // Match/mismatch
@@ -409,12 +374,6 @@ public class SmithWatermanGotoh {
                     // Maximum between gaps and match/mismatch
                     if (this.h2[i][j] <= maxpq)
                         this.h2[i][j] = maxpq;
-                    /*
-                    if (this.h2[i][j] > maxpq)
-                        this.d2[i][j] = '\u2196';
-                    else
-                        this.h2[i][j] = maxpq;
-                     */
 
                     int wi = this.alpha2 + Math.abs(i - j) * this.beta2;
                     double gk = ((double)this.reward2 * Math.min(i, j) + (i == j ? 0.0 : wi < 0 ? (double)-wi : 0.0));
@@ -425,22 +384,6 @@ public class SmithWatermanGotoh {
             int wk = this.alpha2 + Math.abs(this.m2 - this.n2) * this.beta2;
             int gapv = this.reward2 * Math.min(this.m2 - 1, this.n2 - 1) + ((this.m2 == this.n2) ? 0 : (wk < 0 ? -wk : 0));
             sim = (Math.max(0, this.h2[this.m2 - 1][this.n2 - 1])) * 1000 / gapv; // returns [0..1000]
-
-                /*
-                Console.OutputEncoding = System.Text.Encoding.UTF8;
-                Console.WriteLine("h2");
-                Console.WriteLine(ToTokensStringD(h2, d2, m2, n2));
-                Console.WriteLine("d2");
-                Console.WriteLine(ToTokensStringC(d2, m2, n2));
-                Console.WriteLine("h2");
-                Console.WriteLine(ToTokensString(h2, d2, m2, n2));
-                Console.WriteLine("s2");
-                Console.WriteLine(ToTokensStringF(s2, d2, m2, n2));
-                Console.WriteLine("Similitude = {0}, From (i, j) = ({1}, {2}), To (i, j) = ({3}, {4}), maxsim = {5}",
-                    sim, 0, 0, m2 - 1, n2 - 1, h2[m2 - 1, n2 - 1]);
-                Console.WriteLine("\n=========================================\n");
-                Console.ReadKey();
-                */
         }
 
         return sim;
