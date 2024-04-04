@@ -58,8 +58,8 @@ public final class VizCloneToolWindowFactory implements DumbAware {
     private static final int MIN_ZOOMED_CLONES = 100;
     private static final int MAX_ZOOMED_CLONES = 200;
     private static final int SLIDER_CONTROL_POINT_OFFSET = 20;
-    private static final int MAX_BAR_WIDTH = 10;
-    private static final int MAX_ZOOMED_BAR_WIDTH = 20;
+    private static final int MAX_BAR_WIDTH = 25;
+    private static final int MAX_ZOOMED_BAR_WIDTH = 50;
     private static final int HORIZONTAL_PAD = 3;
     private static final int VERTICAL_GAP_FACTOR = 20;
     private static final int VERTICAL_PAD = 2;

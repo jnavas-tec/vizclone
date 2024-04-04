@@ -66,19 +66,24 @@ public class CloneCollector {
         SmithWatermanGotoh swg = new SmithWatermanGotoh();
         this.clones = new ArrayList<>();
         Clone clone;
+        int minSent = 10;
         for (int i = 0; i < numMethods; i++) {
             CMethod methodA = methods.get(i);
-            for (int j = i + 1; j <= numMethods; j++) {
-                swg.init();
-                CMethod methodB = methods.get(j);
-                if (swg.config(methodA, methodB, 0.75, 0.75, 50, 10)) {
-                    clone = swg.getClone();
-                    if (clone != null) {
-                        clone.setIdx(clones.size());
-                        clones.add(clone);
+            if (methodA.getCStatements().size() >= minSent) {
+                for (int j = i + 1; j <= numMethods; j++) {
+                    CMethod methodB = methods.get(j);
+                    if (methodB.getCStatements().size() >= minSent) {
+                        swg.init();
+                        if (swg.config(methodA, methodB, 0.7, 0.7, 50, minSent)) {
+                            clone = swg.getClone();
+                            if (clone != null) {
+                                clone.setIdx(clones.size());
+                                clones.add(clone);
+                            }
+                        }
+                        swg.release();
                     }
                 }
-                swg.release();
             }
         }
         this.mergeClonePairs(50);
@@ -133,19 +138,20 @@ public class CloneCollector {
         for (int i = 0; i < fragments.size() - 1; i++) {
             // fragment A from c1 and cp1
             Fragment f1 = fragments.get(i);
-            if (f1.isMerged()) continue;
+            //if (f1.isMerged()) continue;
             for (int j = i + 1; j < fragments.size(); j++) {
                 // fragment A from c2 and cp2
                 Fragment f3 = fragments.get(j);
                 if (!f1.fromSameMethod(f3)) break;
-                if (f3.isMerged()) continue;
+                //if (f3.isMerged()) continue;
                 // if the two fragments can be merged
                 if (f1.canBeMerged(f3, overlapPercentage)) {
                     // move second clone pair and methods to first clone and fix references
                     Clone c1 = f1.getClone();
                     Clone c2 = f3.getClone();
                     ClonePair cp2 = f3.getClonePair();
-                    c2.fixClonePairs(cp2.getIdxOnClone());
+                    int cp2Idx = cp2.getIdxOnClone();
+                    c2.fixClonePairs(cp2Idx);
                     c2.setNumberOfClonePairs(c2.getClonePairs().size());
                     cp2.setClone(c1);
                     cp2.setIdxOnClone(c1.getClonePairs().size());
@@ -153,10 +159,12 @@ public class CloneCollector {
                     c1.getClonePairs().add(cp2);
                     c1.setNumberOfClonePairs(c1.getClonePairs().size());
                     c1.setMaxWeight(Math.max(c1.getMaxWeight(), cp2.getWeight()));
-                    c1.getMethods().addAll(c2.getMethods());
-                    c2.getMethods().clear();
+                    c1.getMethods().add(c2.getMethods().get(cp2Idx * 2));
+                    c1.getMethods().add(c2.getMethods().get(cp2Idx * 2 + 1));
+                    c2.getMethods().remove(cp2Idx * 2);
+                    c2.getMethods().remove(cp2Idx * 2);
                     // mark fragment A moved from c2 to c1 as merged
-                    f3.setMerged(true);
+                    //f3.setMerged(true);
                     // fragment B from c1 and cp1
                     Fragment f2 = f1.getClonePair().getFragments().get(1 - f1.getIdxOnClonePair());
                     // fragment C from c2 and cp2
@@ -169,7 +177,8 @@ public class CloneCollector {
                         Fragment f6 = cp3.getFragments().get(1);
                         // move third clone pair to first clone and fix references
                         Clone c3 = f5.getClone();
-                        c3.fixClonePairs(cp3.getIdxOnClone());
+                        int cp3Idx = cp3.getIdxOnClone();
+                        c3.fixClonePairs(cp3Idx);
                         c3.setNumberOfClonePairs(c3.getClonePairs().size());
                         cp3.setClone(c1);
                         cp3.setIdxOnClone(c1.getClonePairs().size());
@@ -177,8 +186,10 @@ public class CloneCollector {
                         c1.getClonePairs().add(cp3);
                         c1.setNumberOfClonePairs(c1.getClonePairs().size());
                         c1.setMaxWeight(Math.max(c1.getMaxWeight(), cp3.getWeight()));
-                        c1.getMethods().addAll(c3.getMethods());
-                        c3.getMethods().clear();
+                        c1.getMethods().add(c3.getMethods().get(cp3Idx * 2));
+                        c1.getMethods().add(c3.getMethods().get(cp3Idx * 2 + 1));
+                        c3.getMethods().remove(cp3Idx * 2);
+                        c3.getMethods().remove(cp3Idx * 2);
                     }
                 }
             }
@@ -198,7 +209,7 @@ public class CloneCollector {
     private ClonePair findMergeableClonePair(Hashtable<Integer, Integer> fragmentsMap,
                                              Fragment f2, Fragment f4, int overlapPercentage) {
         int numFrags = fragments.size();
-        for (int f = f2.getCMethod().getIdx(); f < numFrags && f2.fromSameMethod(fragments.get(f)); f++) {
+        for (int f = fragmentsMap.get(f2.getCMethod().getIdx()); f < numFrags && f2.fromSameMethod(fragments.get(f)); f++) {
             ClonePair cp3 = fragments.get(f).getClonePair();
             int f5Side = f2.fromSameMethod(cp3.getFragments().get(0)) ? 0 : 1;
             int f6Side = 1 - f5Side;

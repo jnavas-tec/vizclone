@@ -128,10 +128,10 @@ public class CloneGraph {
     public void fixWeights() {
         for (Clone c : clones) {
             c.setMaxSim(c.getMaxWeight());
-            c.setMaxWeight(((c.getMaxWeight() - minWeight) * 19 / weightRange) + 1);
+            c.setMaxWeight(Math.max(1, ((c.getMaxWeight() - minWeight) * 19 / weightRange) + 1));
             for (ClonePair cp : c.getClonePairs()) {
                 cp.setSim(cp.getWeight());
-                cp.setWeight(((cp.getWeight() - minWeight) * 19 / weightRange) + 1);
+                cp.setWeight(Math.max(1, ((cp.getWeight() - minWeight) * 19 / weightRange) + 1));
             }
         }
     }
