@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 @Data
 public class CloneCollector {
 
-    private static final int MIN_SENT = 10;
+    private static final int MIN_SENT = 7;
     private static final double MIN_SIM = 0.7;
-    private static final double MIN_SENT_SIM = 0.7;
+    private static final double MIN_SENT_SIM = 0.8;
     private static final int MIN_TOKENS = 50;
 
     private ArrayList<Clone> clones = new ArrayList<>();
