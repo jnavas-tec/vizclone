@@ -20,10 +20,11 @@ import java.util.stream.Collectors;
 @Data
 public class CloneCollector {
 
-    private static final int MIN_SENT = 7;
-    private static final double MIN_SIM = 0.7;
-    private static final double MIN_SENT_SIM = 0.8;
-    private static final int MIN_TOKENS = 50;
+    public static double MIN_SIM = 0.7;
+    public static double MIN_SENT_SIM = 0.8;
+    public static int MIN_TOKENS = 50;
+    public static int MIN_SENT = 7;
+    public static int NUM_WEIGHT_LEVELS = 4;
 
     private ArrayList<Clone> clones = new ArrayList<>();
     private ArrayList<Fragment> fragments = new ArrayList<>();
@@ -42,7 +43,7 @@ public class CloneCollector {
         List<PsiFile> javaPsiFilesList = PsiUtilCore.toPsiFiles(PsiManager.getInstance(project), javaVFilesList);
 
         javaPsiFilesList.stream()
-                .forEach(javaPsiFile -> javaPsiFile.accept(new JavaCloneRecursiveElementVisitor(this)));
+                .forEach(javaPsiFile -> javaPsiFile.accept(new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS)));
     }
 
     private static List<VirtualFile> collectJavaClassesInFolder(@NotNull String sourcePath, @NotNull VirtualFile vFolder) {
@@ -61,7 +62,13 @@ public class CloneCollector {
         return javaVFilesList;
     }
 
-    public void collectJavaClones(@NotNull Project project) {
+    public void collectJavaClones(@NotNull Project project, double minSim, double minSentSim, int minTokens, int minSent,
+                                  int numWeightLevels) {
+        MIN_SIM = minSim;
+        MIN_SENT_SIM = minSentSim;
+        MIN_TOKENS = minTokens;
+        MIN_SENT = minSent;
+        NUM_WEIGHT_LEVELS = numWeightLevels;
         clones = new ArrayList<>();
         fragments = new ArrayList<>();
         collectJavaClasses(project);
@@ -78,7 +85,7 @@ public class CloneCollector {
                     CMethod methodB = methods.get(j);
                     if (methodB.getCStatements().size() >= MIN_SENT) {
                         swg.init();
-                        if (swg.config(methodA, methodB, MIN_SIM, MIN_SENT_SIM, MIN_TOKENS, MIN_SENT)) {
+                        if (swg.config(methodA, methodB, MIN_SIM, MIN_SENT_SIM, MIN_TOKENS, MIN_SENT, NUM_WEIGHT_LEVELS)) {
                             clone = swg.getClone();
                             if (clone != null) {
                                 clone.setIdx(clones.size());
@@ -163,6 +170,8 @@ public class CloneCollector {
                     c1.getClonePairs().add(cp2);
                     c1.setNumberOfClonePairs(c1.getClonePairs().size());
                     c1.setMaxWeight(Math.max(c1.getMaxWeight(), cp2.getWeight()));
+                    c1.setMaxSim(Math.max(c1.getMaxSim(), cp2.getSim()));
+                    c1.setMaxLevel(Math.max(c1.getMaxLevel(), cp2.getLevel()));
                     c1.getMethods().add(c2.getMethods().get(cp2Idx * 2));
                     c1.getMethods().add(c2.getMethods().get(cp2Idx * 2 + 1));
                     c2.getMethods().remove(cp2Idx * 2);
@@ -190,6 +199,8 @@ public class CloneCollector {
                         c1.getClonePairs().add(cp3);
                         c1.setNumberOfClonePairs(c1.getClonePairs().size());
                         c1.setMaxWeight(Math.max(c1.getMaxWeight(), cp3.getWeight()));
+                        c1.setMaxSim(Math.max(c1.getMaxSim(), cp3.getSim()));
+                        c1.setMaxLevel(Math.max(c1.getMaxLevel(), cp3.getLevel()));
                         c1.getMethods().add(c3.getMethods().get(cp3Idx * 2));
                         c1.getMethods().add(c3.getMethods().get(cp3Idx * 2 + 1));
                         c3.getMethods().remove(cp3Idx * 2);

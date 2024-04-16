@@ -40,6 +40,10 @@ public class SmithWatermanGotoh {
     private int minSent = MIN_SENT;
     private int minTokens = MIN_TOKENS;
 
+    private int minWeight = (int)(MIN_SIM * 100);
+    private int weightRange = 100 - minWeight;
+    private int numWeightLevels = 4;
+
     private Boolean configured;
 
     public SmithWatermanGotoh()
@@ -81,13 +85,17 @@ public class SmithWatermanGotoh {
     }
 
     public boolean config(CMethod a, CMethod b) {
-        return config(a, b, this.minSim, this.minSentSim, this.minTokens, this.minSent);
+        return config(a, b, this.minSim, this.minSentSim, this.minTokens, this.minSent, this.numWeightLevels);
     }
 
-    public boolean config(CMethod a, CMethod b, double minSim, double minSentSim, int minTokens, int minSent) {
+    public boolean config(CMethod a, CMethod b, double minSim, double minSentSim, int minTokens, int minSent,
+                          int numWeightLevels) {
         this.methodA = a;
         this.methodB = b;
         this.minSim = minSim;
+        this.minWeight = (int)(minSim * 100);
+        this.weightRange = 100 - this.minWeight;
+        this.numWeightLevels = numWeightLevels;
         this.minSentSim = minSentSim;
         this.minTokens = minTokens;
         this.minSent = minSent;
@@ -283,7 +291,10 @@ public class SmithWatermanGotoh {
                 clonePair.setClone(clone);
                 clonePair.getFragments().add(fragmentA);
                 clonePair.getFragments().add(fragmentB);
-                clonePair.setWeight(maxintsimvalue / 10);
+                clonePair.setSim(maxintsimvalue / 10);
+                clonePair.setLevel(Math.min(this.numWeightLevels - 1,
+                    ((clonePair.getSim() - this.minWeight) * this.numWeightLevels / this.weightRange)));
+                clonePair.setWeight((clonePair.getSim() - this.minWeight) * 100 / this.weightRange);
                 clonePair.setMaxNumberOfStatements(Math.max(fragmentA.getNumberOfStatements(), fragmentB.getNumberOfStatements()));
                 clone.getMethods().add(this.methodA);
                 clone.getMethods().add(this.methodB);
@@ -291,6 +302,8 @@ public class SmithWatermanGotoh {
                 clone.setNumberOfClonePairs(1);
                 clone.setMaxNumberOfStatements(clonePair.getMaxNumberOfStatements());
                 clone.setMaxWeight(clonePair.getWeight());
+                clone.setMaxSim(clonePair.getSim());
+                clone.setMaxLevel(clonePair.getLevel());
             }
         }
 

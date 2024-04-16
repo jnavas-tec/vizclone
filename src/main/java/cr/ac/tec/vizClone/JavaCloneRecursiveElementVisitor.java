@@ -32,8 +32,12 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     private CClass cClass = null;
     private CMethod cMethod = null;
     private CStatement cStatement = null;
+    private Integer minSentences = 0;
+    private Integer minTokens = 0;
 
-    public JavaCloneRecursiveElementVisitor(CloneCollector cloneCollector) {
+    public JavaCloneRecursiveElementVisitor(CloneCollector cloneCollector, Integer minSentences, Integer minTokens) {
+        this.minSentences = minSentences;
+        this.minTokens = minTokens;
         this.cloneCollector = cloneCollector;
     }
 
@@ -53,7 +57,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
 
     @Override
     public void visitClass(PsiClass aClass) {
-        if (!visitingAnonymousClass) {
+        if (!visitingClass && !visitingAnonymousClass && !visitingMethod) {
             CClass previousCClass = cClass;
             cClass = CClassDict.getClass(aClass, lineColumns);
             boolean previousVisitingClass = visitingClass;
@@ -67,7 +71,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
 
     @Override
     public void visitMethod(PsiMethod method) {
-        if (visitingClass && !visitingAnonymousClass) {
+        if (visitingClass && !visitingAnonymousClass && !visitingMethod) {
             CMethod previousCMethod = cMethod;
             //System.out.println(method.getName());
             cMethod = CMethodDict.getMethod(method, lineColumns);
@@ -75,6 +79,10 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
             boolean previousVisitingMethod = visitingMethod;
             visitingMethod = true;
             super.visitMethod(method);
+            // add method if it has minimun number of sentences
+            if (cMethod.getCStatements().size() < minSentences || cMethod.getNumTokens() < minTokens) {
+                CMethodDict.removeMethod(cMethod);
+            }
             visitingMethod = previousVisitingMethod;
             cMethod = previousCMethod;
         }
@@ -114,7 +122,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         cStatement.setPsiStatement(psiStatement);
         cStatement.setCMethod(cMethod);
         cStatement.setFromOffset(psiStatement.getTextRange().getStartOffset());
-        cStatement.setToOffset(psiStatement.getTextRange().getEndOffset());
+        cStatement.setToOffset(psiStatement.getTextRange().getEndOffset() - 1);
         cStatement.setFromLineColumn(lineColumns.get(cStatement.getFromOffset()));
         cStatement.setToLineColumn(lineColumns.get(cStatement.getToOffset()));
         CMethodDict.addStatement(cMethod.getIdx(), cStatement);
@@ -128,7 +136,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         cStatement.setPsiStatement(psiStatement);
         cStatement.setCMethod(cMethod);
         cStatement.setFromOffset(psiKeyword.getTextRange().getStartOffset());
-        cStatement.setToOffset(psiKeyword.getTextRange().getEndOffset());
+        cStatement.setToOffset(psiKeyword.getTextRange().getEndOffset() - 1);
         cStatement.setFromLineColumn(lineColumns.get(cStatement.getFromOffset()));
         cStatement.setToLineColumn(lineColumns.get(cStatement.getToOffset()));
         CMethodDict.addStatement(cMethod.getIdx(), cStatement);
@@ -210,12 +218,13 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         String elementType = astNode.getElementType().toString();
         String braceElements[] = { "LBRACE", "RBRACE" };
         if (visitingClass && visitingMethod && visitingCodeBlock && visitingStatement
-                && element.getChildren().length == 0
-                && astNode.getTextLength() > 0
-                && !elementType.equals("WHITE_SPACE")
-                && !elementType.equals("END_OF_LINE_COMMENT")
-                && (!Arrays.asList(braceElements).contains(elementType) ||
-                    !"BLOCK_STATEMENT".equals(StatementDict.getStatement(cStatement.getStatementId()))))
+            && cStatement != null
+            && element.getChildren().length == 0
+            && astNode.getTextLength() > 0
+            && !elementType.equals("WHITE_SPACE")
+            && !elementType.equals("END_OF_LINE_COMMENT")
+            && (!Arrays.asList(braceElements).contains(elementType) ||
+                !"BLOCK_STATEMENT".equals(StatementDict.getStatement(cStatement.getStatementId()))))
         {
             String tokenName = element.getNode().getElementType().getDebugName();
             Integer tokenId = TokenDict.getTokenId(tokenName);

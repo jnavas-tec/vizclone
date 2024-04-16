@@ -20,17 +20,19 @@ public class CPackageDict {
     }
 
     static public Integer getPackageIdx(PsiPackage psiPackage) {
-        Integer index = packagesDict.get(psiPackage.getQualifiedName());
+        String qualifiedName = psiPackage.getQualifiedName();
+        if (qualifiedName == null) qualifiedName = psiPackage.getName();
+        Integer index = packagesDict.get(qualifiedName);
         if (index == null) {
             // initialize package
             CPackage cPackage = new CPackage();
             cPackage.setPsiPackage(psiPackage);
             cPackage.setName(psiPackage.getName());
-            cPackage.setSignature(psiPackage.getQualifiedName());
+            cPackage.setSignature(qualifiedName);
             // add package
             packagesArray.add(cPackage);
             index = packagesArray.size() - 1;
-            packagesDict.put(psiPackage.getQualifiedName(), index);
+            packagesDict.put(qualifiedName, index);
             cPackage.setIdx(index);
         }
         return index;

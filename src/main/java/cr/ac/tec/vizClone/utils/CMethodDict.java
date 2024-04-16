@@ -22,7 +22,9 @@ public class CMethodDict {
 
     static public Integer getMethodIdx(PsiMethod psiMethod, List<LineColumn> lineColumns) {
         PsiClass containingClass = psiMethod.getContainingClass();
-        String methodSignature =  (containingClass == null ? "" : containingClass.getQualifiedName() + ".")
+        String qualifiedName = containingClass.getQualifiedName();
+        if (qualifiedName == null) qualifiedName = containingClass.getName();
+        String methodSignature =  (containingClass == null ? "" : qualifiedName + ".")
                 + psiMethod.getName() + psiMethod.getParameterList().getText();
         Integer index = methodDict.get(methodSignature);
         if (index == null) {
@@ -37,10 +39,9 @@ public class CMethodDict {
             cMethod.setName(psiMethod.getName());
             cMethod.setSignature(methodSignature);
             cMethod.setFromOffset(psiMethod.getTextRange().getStartOffset());
-            cMethod.setToOffset(psiMethod.getTextRange().getEndOffset());
+            cMethod.setToOffset(psiMethod.getTextRange().getEndOffset() - 1);
             cMethod.setFromLineColumn(lineColumns.get(cMethod.getFromOffset()));
             cMethod.setToLineColumn(lineColumns.get(cMethod.getToOffset()));
-            // add method
             methodArray.add(cMethod);
             methodDict.put(methodSignature, cMethod.getIdx());
         }
@@ -65,6 +66,11 @@ public class CMethodDict {
             cMethod = methodArray.get(methodIdx);
         }
         return cMethod;
+    }
+
+    static public void removeMethod(CMethod method) {
+        methodArray.remove(methodDict.get(method.getSignature()));
+        methodDict.remove(method.getSignature());
     }
 
     static public Hashtable<String, Integer> dict() {

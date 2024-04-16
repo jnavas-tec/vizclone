@@ -13,6 +13,10 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    implementation("com.pivovarit:parallel-collectors:2.6.0")
+}
+
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
@@ -24,6 +28,8 @@ intellij {
 }
 
 tasks {
+    val runIde by existing(org.jetbrains.intellij.tasks.RunIdeTask::class) { maxHeapSize = "8g" }
+
     // Set the JVM compatibility versions
     withType<JavaCompile> {
         sourceCompatibility = "17"

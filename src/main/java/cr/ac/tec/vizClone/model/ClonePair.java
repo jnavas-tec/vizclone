@@ -14,6 +14,7 @@ public class ClonePair {
     private int maxNumberOfStatements = 0;
     private int weight = 0;
     private int sim = 0;
+    private int level = 0;
 
     public String toString() {
         return String.format("idx:%d  merged:%b-%b  clone:%d  idxOnClone:%d  #fragments:%d",

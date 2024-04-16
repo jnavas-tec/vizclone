@@ -42,19 +42,21 @@ public final class VizCloneToolWindowFactory implements DumbAware {
     private static final String ORANGE = "#5e7e60";
     private static final String RED = "#335c38";
 
+    private static final int MAGNETIC_PIXELS = 10;
+
     // Stroke widths
     private static final float NON_SELECTED_STROKE = 0.5F;
     private static final float SELECTED_STROKE = 2.5F;
 
     private static final String[] SIMILITUDE = { GREEN, YELLOW, ORANGE, RED };
-    private static final int STRIPE_HEIGHT = 50;   // pixels
+    public static final int STRIPE_HEIGHT = 50;   // pixels
     private static final int GRAPH_HEIGHT = 55;    // percent
     private static final int ZOOM_HEIGHT = 30;     // percent
     //private static final int BRACE_HEIGHT = 15;  // percent - implicit
     private static final int ZOOM_Y_OFFSET = 15;   // percent
-    private static final int ZOOM_Y_GROW = 5;      // percent
-    private static final int ZOOM_Y_SCALE = 4;     // percent
-    private static final int ZOOM_MAX_K = 3;       // horizontal increase factor - KEEP IT ODD
+    private static final int ZOOM_Y_GROW = 3;      // percent
+    private static final int ZOOM_Y_SCALE = 2;     // times
+    private static final int ZOOM_MAX_K = 5;       // horizontal increase factor - KEEP IT ODD
     private static final int MIN_ZOOMED_CLONES = 100;
     private static final int MAX_ZOOMED_CLONES = 200;
     private static final int SLIDER_CONTROL_POINT_OFFSET = 20;
@@ -78,8 +80,8 @@ public final class VizCloneToolWindowFactory implements DumbAware {
     private static Rectangle sliderRect = null;
     private static int firstZoomedCloneX = 0;
     private static int firstZoomedClone = 0;
-    private static int numCodeFragments = 150;
-    private static int numCodeClones = 150;
+    private static int numCodeFragments = 10000;
+    private static int numCodeClones = 1000;
     private static int numZoomedClones = MAX_ZOOMED_CLONES;
     private static int codePanelWidth;
     private static int codePanelBars;
@@ -118,11 +120,18 @@ public final class VizCloneToolWindowFactory implements DumbAware {
         factory.myCollector = collector;
         factory.numCodeClones = clones.size();
         factory.numCodeFragments = fragments.size();
-        factory.graph = new CloneGraph(clones, fragments);
-        factory.graph.setMinWeight(75);
-        factory.graph.setMaxWeight(100);
-        factory.graph.setNumWeightLevels(4);
-        factory.graph.fixWeights();
+        factory.graph = new CloneGraph(clones, fragments,
+            (int)(collector.MIN_SIM * 100.0), 100, 4);
+        return factory;
+    }
+
+    public static VizCloneToolWindowFactory getTestInstance(@NotNull Project project, CloneCollector collector, ArrayList<Clone> clones, ArrayList<Fragment> fragments) {
+        VizCloneToolWindowFactory factory = (VizCloneToolWindowFactory)project.getService(VizCloneToolWindowFactory.class);
+        factory.myProject = project;
+        factory.myCollector = collector;
+        factory.graph = new CloneGraph(factory.numCodeFragments, factory.numCodeClones, factory.STRIPE_HEIGHT,
+            (int)(collector.MIN_SIM * 100.0), 100, 4);
+        factory.graph.populateGraph();
         return factory;
     }
 
@@ -166,7 +175,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             myProject = project;
             myCollector = collector;
             contentPanel = new JPanel();
-            codePanel = new CodePanel(STRIPE_HEIGHT);
+            codePanel = new CodePanel(project, collector, STRIPE_HEIGHT);
             edgePanel = new EdgePanel(myProject, myCollector);
             clonePanel = new ClonePanel(STRIPE_HEIGHT);
             numZoomedClones = numCodeClones / 5;
@@ -183,17 +192,125 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             edgePanel.setCodePanel(codePanel);
             clonePanel.setEdgePanel(edgePanel);
             edgePanel.setClonePanel(clonePanel);
+            codePanel.setEdgePanel(edgePanel);
         }
 
         public JPanel getContentPanel() { return contentPanel; }
     }
 
     private static class CodePanel extends JPanel implements ComponentListener {
-        public CodePanel(int minHeight) {
+        private Project myProject;
+        private CloneCollector myCollector;
+        private EdgePanel edgePanel;
+        private ArrayList<Integer> hoveredFragments = new ArrayList<>();
+
+        public CodePanel(Project project, CloneCollector collector, int minHeight) {
             super();
+            myProject = project;
+            myCollector = collector;
             setOpaque(true);
             this.setPreferredSize(new Dimension(0, minHeight));
             this.addComponentListener(this);
+            /*
+            this.addMouseListener(new MouseAdapter() {
+                Project project = myProject;
+                CloneCollector collector = myCollector;
+
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    super.mouseClicked(e);
+                    int clone = findPointedToClone(e);
+                    if (isLeftMouseButton(e)) {
+                        if (clone != selectedClone) {
+                            selectedClone = clone;
+                            graph.setSelected(true);
+                            graph.setSelectedClone(selectedClone);
+                            codePanel.repaint();
+                        } else {
+                            selectedClone = -1;
+                            if (graph.isSelected()) {
+                                graph.setSelected(false);
+                                codePanel.repaint();
+                            }
+                        }
+                        repaint();
+                    }
+                    else if (isRightMouseButton(e)) {
+                        if (clone != -1) {
+                            DiffCloneManager
+                                .getInstance(project)
+                                .showDiffClones(collector.getClones().subList(clone, clone + 1));
+                        }
+                    }
+                }
+            });
+             */
+            this.addMouseMotionListener(new MouseAdapter() {
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    super.mouseMoved(e);
+                    if (graph.isSelected()) {
+                        ArrayList<Integer> pointedToFragments = findPointedToFragments(e);
+                        if (hoveredChanged(pointedToFragments)) {
+                            graph.setHoveredFragments(pointedToFragments.size() > 0);
+                            graph.setHoveredFragmentList(pointedToFragments);
+                            edgePanel.repaint();
+                        }
+                    }
+                    /*
+                    if (selectedClone == -1) {
+                        if (hoveredClone != -1) {
+                            if (!graph.isSelected() || hoveredClone != graph.getSelectedClone()) {
+                                graph.setSelected(true);
+                                graph.setSelectedClone(hoveredClone);
+                                codePanel.repaint();
+                            }
+                        }
+                        else if (graph.isSelected()) {
+                            graph.setSelected(false);
+                            codePanel.repaint();
+                        }
+                    }
+                     */
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    super.mouseExited(e);
+                    graph.setHoveredFragments(false);
+                    graph.setHoveredFragmentList(new ArrayList<>());
+                    edgePanel.repaint();
+                }
+            });
+        }
+
+        private boolean hoveredChanged(ArrayList<Integer> pointedToFragments) {
+            if (pointedToFragments.size() != graph.getHoveredFragmentList().size()) return true;
+            for (int f = 0; f < pointedToFragments.size(); f++)
+                if (pointedToFragments.get(f) != graph.getHoveredFragmentList().get(f)) return true;
+            return false;
+        }
+
+        public void setEdgePanel(EdgePanel edgePanel) {
+            this.edgePanel = edgePanel;
+        }
+
+        private ArrayList<Integer> findPointedToFragments(MouseEvent e) {
+            ArrayList<Integer> pointedToFragments = new ArrayList<>();
+            if (codePanelRect.contains(e.getPoint())) {
+                int pointedToFragmentOffset = (e.getX() - codePanelRect.x + codePanelBarWidth) / codePanelBarWidth - 1;
+                int barX = (pointedToFragmentOffset) * codePanelBarWidth + codePanelRect.x;
+                int barY = codePanelRect.y;
+                int barHeight = codePanelRect.height;
+                int firstPointedToFragment = pointedToFragmentOffset * codePanelFragmentsPerBar - MAGNETIC_PIXELS * codePanelFragmentsPerBar / codePanelBarWidth;
+                int lastPointedToFragment = firstPointedToFragment + (codePanelBarWidth + 2 * MAGNETIC_PIXELS) * codePanelFragmentsPerBar / codePanelBarWidth;
+                if (new Rectangle(barX - MAGNETIC_PIXELS, barY, codePanelBarWidth + MAGNETIC_PIXELS * 2, barHeight).contains(e.getPoint())) {
+                    for (int fp = firstPointedToFragment; fp < lastPointedToFragment; fp++)
+                        if (graph.getSelectedClone() == graph.getFragments().get(fp).getClone().getIdx())
+                            pointedToFragments.add(fp);
+                }
+            }
+            return pointedToFragments;
         }
 
         public void componentMoved(ComponentEvent event) {
@@ -242,7 +359,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             if (codePanelRect.width <= numCodeFragments) {
                 drawFragment = (rectangle, color) -> {
                     g2.setColor(color);
-                    g2.drawLine(rectangle.x, rectangle.y, rectangle.x + rectangle.width, rectangle.y + rectangle.height);
+                    g2.drawLine(rectangle.x, rectangle.y, rectangle.x /*+ rectangle.width*/, rectangle.y + rectangle.height);
                 };
             }
             else {
@@ -253,26 +370,27 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                     g2.drawRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
                 };
             }
-            if (graph.isSelected()) {
-                for (int i = 0; i < numCodeFragments; i++) {
-                    boolean grayedOut = (graph.getSelectedClone() == graph.getFragments().get(i).getClone().getIdx()) ? false : true;
-                    drawFragment(drawFragment, i, grayedOut);
-                }
+            for (int i = 0; i < numCodeFragments; i++) {
+                drawFragment(drawFragment, i, graph.isSelected());
             }
-            else {
-                for (int i = 0; i < numCodeFragments; i++) {
-                    drawFragment(drawFragment, i, false);
+            if (graph.isSelected()) {
+                Clone clone = graph.getClones().get(graph.getSelectedClone());
+                for (int cp = 0; cp < clone.getNumberOfClonePairs(); cp++) {
+                    ClonePair clonePair = clone.getClonePairs().get(cp);
+                    drawFragment(drawFragment, clonePair.getFragments().get(0).getIdx(), false);
+                    drawFragment(drawFragment, clonePair.getFragments().get(1).getIdx(), false);
                 }
             }
         }
 
         public void drawFragment(BiConsumer<Rectangle, Color> drawFragment, int fragmentIdx, boolean grayedOut) {
-            int weight = graph.getFragments().get(fragmentIdx).getClonePair().getWeight();
-            int colorIndex = graph.getFragmentColorIndex(weight);
-            weight = weight * STRIPE_HEIGHT / 20;
+            ClonePair cp = graph.getFragments().get(fragmentIdx).getClonePair();
+            int weight = graph.getScaledWeight(cp.getWeight(), STRIPE_HEIGHT);
+            int colorIndex = cp.getLevel();
+            //weight = weight * STRIPE_HEIGHT / 20;
             drawFragment.accept(
                 new Rectangle(
-                    fragmentIdx * codePanelBarWidth + codePanelRect.x,
+                    fragmentIdx * codePanelBarWidth / codePanelFragmentsPerBar + codePanelRect.x,
                     STRIPE_HEIGHT - weight,
                     codePanelBarWidth,
                     weight),
@@ -286,7 +404,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
 
         public Point getFragmentLocation(int fragment) {
             Point p = new Point();
-            p.x = fragment * codePanelBarWidth + codePanelRect.x + codePanelBarWidth / 2;
+            p.x = fragment * codePanelBarWidth / codePanelFragmentsPerBar + codePanelRect.x + codePanelBarWidth / 2;
             p.y = codePanelRect.y + codePanelRect.height;
             return p;
         }
@@ -311,7 +429,6 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             this.addMouseListener(new MouseAdapter() {
                 Project project = myProject;
                 CloneCollector collector = myCollector;
-
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
@@ -319,12 +436,13 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                     if (isLeftMouseButton(e)) {
                         if (clone != selectedClone) {
                             selectedClone = clone;
-                            graph.setSelected(true);
+                            graph.setSelected(selectedClone != -1);
                             graph.setSelectedClone(selectedClone);
                             codePanel.repaint();
                         } else {
                             selectedClone = -1;
                             if (graph.isSelected()) {
+                                graph.setSelectedClone(-1);
                                 graph.setSelected(false);
                                 codePanel.repaint();
                             }
@@ -359,8 +477,20 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                         }
                         else if (graph.isSelected()) {
                             graph.setSelected(false);
+                            graph.setSelectedClone(-1);
                             codePanel.repaint();
                         }
+                    }
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    super.mouseExited(e);
+                    hoveredClone = -1;
+                    if (selectedClone == -1) {
+                        graph.setSelected(false);
+                        graph.setSelectedClone(-1);
+                        codePanel.repaint();
                     }
                 }
             });
@@ -380,6 +510,10 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 }
             }
             return pointedToClone;
+        }
+
+        public int getSelectedClone() {
+            return selectedClone;
         }
 
         public void componentMoved(ComponentEvent event) {
@@ -479,19 +613,23 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             }
         }
 
-        private void drawFragmentLabel(Clone clone, Fragment fragment, int fragmentOrder) {
+        private void drawFragmentLabel(int numFragments, Fragment fragment, int fragmentOrder) {
             String label = String.format("%s: %d%% [%d-%d]", fragment.getCMethod().getName(),
                 fragment.getClonePair().getSim(), fragment.getFromLineColumn().line, fragment.getToLineColumn().line);
             Point fragmentLocation = codePanel.getFragmentLocation(fragment.getIdx());
             fragmentLocation.y = 0;
-            int numFragments = clone.getClonePairs().size() * 2;
             Point labelLocation = getLabelLocation(numFragments, fragmentOrder, fragmentLocation);
             drawLabelText(label, labelLocation, fragmentLocation,
-                isLeftFragment(numFragments, fragmentOrder), fragment.getClonePair().getWeight());
+                fragmentAlignment(numFragments, fragmentOrder), fragment.getClonePair().getWeight());
         }
 
-        private boolean isLeftFragment(int numFragments, int fragmentIdx) {
-            return fragmentIdx < (numFragments / 2);
+        private int fragmentAlignment(int numFragments, int fragmentIdx) {
+            boolean isOdd = numFragments % 2 == 1;
+            boolean isCenter = isOdd && fragmentIdx == numFragments / 2;
+            boolean isLeft = fragmentIdx < (numFragments / 2);
+            if (isLeft) return 0;
+            if (isCenter) return 1;
+            return 2;
         }
 
         private Point getLabelLocation(int numFragments, int fragmentIdx, Point fragmentLocation) {
@@ -499,16 +637,26 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             FontMetrics fm = g2.getFontMetrics();
             int lineGap = fm.getHeight() / VERTICAL_GAP_FACTOR;
             int lineHeight = lineGap + fm.getHeight() + 3 * VERTICAL_PAD;
-            boolean isLeft = fragmentIdx < (numFragments / 2);
+            int align = fragmentAlignment(numFragments, fragmentIdx);
+            boolean isOdd = numFragments % 2 == 1;
             int maxLeft = numFragments / 2 - 1;
-            int minRight = maxLeft + 1;
-            p.x = fragmentLocation.x + (isLeft ? -codePanelBarWidth / 2 : codePanelBarWidth / 2);
-            p.y = fragmentLocation.y + VERTICAL_PAD    
-                + (lineGap + lineHeight) * (isLeft ? fragmentIdx : maxLeft - (fragmentIdx % minRight));
+            int minRight = maxLeft + (isOdd ? 2 : 1);
+            if (align == 1) { // center
+                p.x = fragmentLocation.x;
+                p.y = fragmentLocation.y + (lineGap + lineHeight) * fragmentIdx;
+            }
+            else if (align == 0) { // left fragment
+                p.x = fragmentLocation.x + -codePanelBarWidth / 2;
+                p.y = fragmentLocation.y + VERTICAL_PAD + (lineGap + lineHeight) * fragmentIdx;
+            }
+            else { // right fragment
+                p.x = fragmentLocation.x + codePanelBarWidth / 2;
+                p.y = fragmentLocation.y + VERTICAL_PAD + (lineGap + lineHeight) * maxLeft - (fragmentIdx % minRight);
+            }
             return p;
         }
 
-        private void drawLabelText(String label, Point labelLocation, Point fragmentLocation, boolean isLeftFragment, int weight) {
+        private void drawLabelText(String label, Point labelLocation, Point fragmentLocation, int alignment, int weight) {
             int x2 = labelLocation.x;
             int y1 = labelLocation.y;
             int x0 = fragmentLocation.x;
@@ -518,7 +666,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             int lineHeight = (fm.getHeight()) + VERTICAL_PAD + 2 * fm.getHeight() / VERTICAL_GAP_FACTOR;
             int labelWidth = fm.stringWidth(label);
 
-            int rx = x2 + (isLeftFragment ? -labelWidth - HORIZONTAL_PAD : -HORIZONTAL_PAD);
+            int rx = x2 + (alignment == 0 ? -labelWidth - HORIZONTAL_PAD : (alignment == 2 ? HORIZONTAL_PAD : -labelWidth / 2));
             int ry = y1;
             int rw = labelWidth + 2 * HORIZONTAL_PAD;
             int rh = lineHeight;
@@ -562,11 +710,12 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 // paint grayed clones with selection
                 drawZoomedInClonesWithHighlight(selectedClone, firstZoomedClone, barX, barY, barWidth, arcSize);
                 // draw selected Clone's fragment labels
-                Clone clone = graph.getClones().get(selectedClone);
-                int numFragments = clone.getNumberOfClonePairs() * 2;
-                ArrayList<Fragment> sortedFragments = clone.getSortedFragments();
-                for (int f = 0; f < numFragments; f++) {
-                    drawFragmentLabel(clone, sortedFragments.get(f), f);
+                if (graph.isHoveredFragments()) {
+                    ArrayList<Integer> fragmentList = graph.getHoveredFragmentList();
+                    int numFragments = fragmentList.size();
+                    for (int f = 0; f < numFragments; f++) {
+                        drawFragmentLabel(numFragments, graph.getFragments().get(fragmentList.get(f)), f);
+                    }
                 }
             }
             else if (hoveredClone >= 0) {
@@ -574,6 +723,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 drawGrayedArcs(firstZoomedClone, hoveredClone, cloneCenterX, cloneCenterY, barWidth);
                 // paint grayed clones with selection
                 drawZoomedInClonesWithHighlight(hoveredClone, firstZoomedClone, barX, barY, barWidth, arcSize);
+                /*
                 // draw selected Clone's fragment labels
                 Clone clone = graph.getClones().get(hoveredClone);
                 int numFragments = clone.getNumberOfClonePairs() * 2;
@@ -581,6 +731,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 for (int f = 0; f < numFragments; f++) {
                     drawFragmentLabel(clone, sortedFragments.get(f), f);
                 }
+                 */
             }
             else {
                 // no clone selected
@@ -588,6 +739,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 drawArcs(firstZoomedClone, cloneCenterX, cloneCenterY, barWidth);
                 // no clone selected - paint colored clones
                 drawZoomedInClones(firstZoomedClone, barX, barY, barWidth, arcSize);
+                //g2.drawRoundRect(zoomedRect.x, zoomedRect.y, zoomedRect.width, zoomedRect.height, arcSize, arcSize);
             }
         }
 
@@ -595,8 +747,8 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             for (int i = 0; i < numZoomedClones; i++) {
                 int idx = firstZoomedClone + i;
                 int weight = graph.getClones().get(idx).getMaxWeight();
-                int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
-                drawHighlightedClone(idx, weight, barX, barY, barWidth, barHeight, arcSize);
+                int barHeight = graph.getScaledWeight(weight, zoomedRect.height);
+                drawHighlightedClone(idx, weight, barX, barY, barWidth, barHeight, arcSize, graph.getClones().get(idx).getMaxLevel());
                 barX += barWidth;
             }
         }
@@ -611,7 +763,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 int idx = firstZoomedClone + i;
                 if (Math.abs(idx - highlightedClone) > K_WIDTH_2) {
                     int weight = graph.getClones().get(idx).getMaxWeight();
-                    int barHeight = weight * zoomedRect.height / CloneGraph.MAX_WEIGHT;
+                    int barHeight = graph.getScaledWeight(weight, zoomedRect.height); // / graph.getWeightRange();
                     g2.setColor(borderColor);
                     g2.fillRoundRect(cloneX, barY, barWidth, barHeight, arcSize, arcSize);
                     g2.setColor(borderColor);
@@ -619,17 +771,18 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 }
             }
 
-            int leftCloneX = zoomedRect.x + barWidth * (highlightedClone - firstZoomedClone - K_WIDTH_2);// - 1);
+            int leftCloneX = zoomedRect.x + barWidth * (highlightedClone - firstZoomedClone - K_WIDTH_2);
             int rightCloneX = leftCloneX + barWidth * (K_WIDTH);// - 1);
             int cloneWidth = barWidth;
             int yDelta = graphRect.height * ZOOM_Y_OFFSET / (ZOOM_MAX_K * 100);
             int cloneY = barY - yDelta;
-            int highlightYFactor = zoomedRect.height * (100 + ZOOM_Y_OFFSET * 2 + ZOOM_Y_GROW) / (CloneGraph.MAX_WEIGHT * 100);
+            //int highlightYFactor = zoomedRect.height * (100 + ZOOM_Y_OFFSET * 2 + ZOOM_Y_GROW) / (graph.getNumWeightLevels() * 100);
+            int highlightYFactor = ZOOM_Y_GROW;
 
-            int cloneX = zoomedRect.x + barWidth * (highlightedClone - firstZoomedClone - ZOOM_MAX_K / 2);// - 1);
-            int weight = graph.getClones().get(highlightedClone).getMaxWeight();
-            int barHeight = weight * highlightYFactor * (100 + ZOOM_MAX_K * ZOOM_Y_SCALE) / 100;
-
+            int cloneX = zoomedRect.x + barWidth * (highlightedClone - firstZoomedClone - ZOOM_MAX_K / 2);
+            int weight = graph.getScaledWeight(graph.getClones().get(highlightedClone).getMaxWeight(), zoomedRect.height);
+            int barHeight = weight * (100 + highlightYFactor + ZOOM_MAX_K * highlightYFactor * ZOOM_Y_SCALE) / 100;
+            //clone.getMaxWeight() * highlightYFactor * (100 + k * ZOOM_Y_SCALE) / 100
             // clear highlighted clones background
             paintHighlightedClones(true, highlightedClone, firstZoomedClone, barWidth, arcSize,
                     cloneWidth, cloneY, yDelta, leftCloneX, highlightYFactor, rightCloneX);
@@ -645,7 +798,8 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             int cloneCenterY = barY - yDelta * ZOOM_MAX_K;
 
             // paint colored central highlighted clone
-            drawHighlightedClone(highlightedClone, weight, cloneX, cloneCenterY, barWidth * ZOOM_MAX_K, barHeight, arcSize);
+            drawHighlightedClone(highlightedClone, weight, cloneX, cloneCenterY, barWidth * ZOOM_MAX_K, barHeight, arcSize,
+                graph.getClones().get(highlightedClone).getMaxLevel());
 
             // draw central highlighted clone selected arcs
             drawHighlightedArcs(highlightedClone, cloneCenterX, cloneCenterY);
@@ -698,14 +852,15 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 clearHighlightedClone(cloneX, cloneY, cloneWidth, arcSize);
             else {
                 drawHighlightedClone(highlightedClone, clone.getMaxWeight(), cloneX, cloneY, cloneWidth,
-                        clone.getMaxWeight() * highlightYFactor * (100 + k * ZOOM_Y_SCALE) / 100, arcSize);
+                    clone.getMaxWeight() * (100 + highlightYFactor + k * highlightYFactor * ZOOM_Y_SCALE) / 100,
+                    arcSize, clone.getMaxLevel());
                 drawGrayHighlightedArcs(highlightedClone, cloneX + cloneWidth / 2, cloneY);
             }
         }
 
         private static void drawHighlightedClone(int highlightedClone, int weight, int barX, int barY,
-                                                 int barWidth, int barHeight, int arcSize) {
-            int colorIndex = graph.getFragmentColorIndex(weight);
+                                                 int barWidth, int barHeight, int arcSize, int colorIndex) {
+            //int colorIndex = graph.getFragmentColorIndex(weight);
             // fill bar
             g2.setColor(Color.decode(SIMILITUDE[colorIndex]));
             g2.fillRoundRect(barX, barY, barWidth, barHeight, arcSize, arcSize);
@@ -774,7 +929,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                     int stopHere = 1;
                 }
                 Clone clone = graph.getClones().get(idx);
-                Color cloneColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clone.getMaxWeight())]);
+                Color cloneColor = Color.decode(SIMILITUDE[clone.getMaxLevel()]);
                 drawCloneArcs(clone, cloneCenterX, cloneCenterY, cloneColor);
                 cloneCenterX += barWidth;
             }
@@ -786,8 +941,8 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 ClonePair clonePair = clone.getClonePairs().get(f);
                 Fragment fragment0 = clonePair.getFragments().get(0);
                 Fragment fragment1 = clonePair.getFragments().get(1);
-                if (fragment0.getIdx() <= codePanelRect.width) {
-                    Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clonePair.getWeight())]);
+                if (fragment0.getIdx() <= codePanelRect.width * codePanelFragmentsPerBar) {
+                    Color fragmentColor = Color.decode(SIMILITUDE[clonePair.getLevel()]);
                     GradientPaint gradientPaint =
                             new GradientPaint(
                                     0,
@@ -798,8 +953,8 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                                     fragmentColor);
                     drawFragmentArc(fragment0, cloneCenterX, cloneCenterY, gradientPaint);
                 }
-                if (fragment1.getIdx() <= codePanelRect.width) {
-                    Color fragmentColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(clonePair.getWeight())]);
+                if (fragment1.getIdx() <= codePanelRect.width * codePanelFragmentsPerBar) {
+                    Color fragmentColor = Color.decode(SIMILITUDE[clonePair.getLevel()]);
                     GradientPaint gradientPaint =
                             new GradientPaint(
                                     0,
@@ -820,10 +975,10 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 ClonePair clonePair = clone.getClonePairs().get(f);
                 Fragment fragment0 = clonePair.getFragments().get(0);
                 Fragment fragment1 = clonePair.getFragments().get(1);
-                if (fragment0.getIdx() <= codePanelRect.width) {
+                if (fragment0.getIdx() <= codePanelRect.width * codePanelFragmentsPerBar) {
                     drawFragmentArc(fragment0, cloneCenterX, cloneCenterY, borderColor);
                 }
-                if (fragment1.getIdx() <= codePanelRect.width) {
+                if (fragment1.getIdx() <= codePanelRect.width * codePanelFragmentsPerBar) {
                     drawFragmentArc(fragment1, cloneCenterX, cloneCenterY, borderColor);
                 }
             }
@@ -858,10 +1013,10 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                         ClonePair clonePair = clone.getClonePairs().get(f);
                         Fragment fragment0 = clonePair.getFragments().get(0);
                         Fragment fragment1 = clonePair.getFragments().get(1);
-                        if (fragment0.getIdx() <= codePanelRect.width) {
+                        if (fragment0.getIdx() <= codePanelRect.width * codePanelFragmentsPerBar) {
                             drawFragmentArc(fragment0, cloneCenterX, cloneCenterY, borderColor);
                         }
-                        if (fragment1.getIdx() <= codePanelRect.width) {
+                        if (fragment1.getIdx() <= codePanelRect.width * codePanelFragmentsPerBar) {
                             drawFragmentArc(fragment1, cloneCenterX, cloneCenterY, borderColor);
                         }
                     }
@@ -876,7 +1031,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             Stroke stroke = g2.getStroke();
             g2.setStroke(new BasicStroke(SELECTED_STROKE));
             Clone clone = graph.getClones().get(highlightedClone);
-            Color cloneColor = Color.decode(SIMILITUDE[graph.getFragmentColorIndex(weight)]);
+            Color cloneColor = Color.decode(SIMILITUDE[clone.getMaxLevel()]);
             drawCloneArcs(clone, cloneCenterX, cloneCenterY, cloneColor);
             g2.setStroke(stroke);
         }
@@ -1075,8 +1230,8 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                 int last = first + numZoomedClones;
                 int cloneWidth = clonePanelBarWidth / clonePanelClonesPerBar;
                 for (int i = 0, x = clonesPanelRect.x; i < numCodeClones; i++, x += cloneWidth) {
-                    int height = graph.getClones().get(i).getMaxWeight();
-                    int colorIndex = graph.getFragmentColorIndex(height);
+                    int height = graph.getScaledWeight(graph.getClones().get(i).getMaxWeight(), clonesPanelRect.height);
+                    int colorIndex = graph.getClones().get(i).getMaxLevel();
                     Color color;
                     if (first <= i && i < last)
                         color = Color.decode(SIMILITUDE[colorIndex]);
@@ -1089,7 +1244,7 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                                     x2,
                                     0, //STRIPE_HEIGHT - height,
                                     cloneWidth,
-                                    height * STRIPE_HEIGHT / 20),
+                                    height), // * STRIPE_HEIGHT / 20),
                             color);
                 }
                 paintSlider();

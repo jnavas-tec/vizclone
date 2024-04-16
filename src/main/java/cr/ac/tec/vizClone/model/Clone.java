@@ -16,6 +16,7 @@ public class Clone {
     private int maxNumberOfStatements = 0;
     private int maxWeight = 0;
     private int maxSim = 0;
+    private int maxLevel = 0;
     private ArrayList<Fragment> sortedFragments = null;
     private boolean sorted = false;
 

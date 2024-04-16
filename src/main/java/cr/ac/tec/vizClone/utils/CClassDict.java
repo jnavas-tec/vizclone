@@ -23,25 +23,27 @@ public class CClassDict {
     }
 
     static public Integer getClassIdx(PsiClass psiClass, List<LineColumn> lineColumns) {
-        Integer index = classDict.get(psiClass.getQualifiedName());
+        String qualifiedName = psiClass.getQualifiedName();
+        if (qualifiedName == null) qualifiedName = psiClass.getName();
+        Integer index = classDict.get(qualifiedName);
         if (index == null) {
             // retrieve package
             String packageName = PsiUtil.getPackageName(psiClass);
             PsiPackage psiPackage = JavaPsiFacade.getInstance(psiClass.getProject()).findPackage(packageName);
             // initialize class
             CClass cClass = new CClass();
-            cClass.setCPackage(CPackageDict.getPackage(psiPackage));
+            cClass.setCPackage(psiPackage == null ? null : CPackageDict.getPackage(psiPackage));
             cClass.setPsiClass(psiClass);
             cClass.setName(psiClass.getName());
-            cClass.setSignature(psiClass.getQualifiedName());
+            cClass.setSignature(qualifiedName);
             cClass.setFromOffset(psiClass.getTextRange().getStartOffset());
-            cClass.setToOffset(psiClass.getTextRange().getEndOffset());
+            cClass.setToOffset(psiClass.getTextRange().getEndOffset() - 1);
             cClass.setFromLineColumn(lineColumns.get(cClass.getFromOffset()));
             cClass.setToLineColumn(lineColumns.get(cClass.getToOffset()));
-            CPackageDict.addClass(cClass.getCPackage().getIdx(), cClass);
+            if (cClass.getCPackage() != null) CPackageDict.addClass(cClass.getCPackage().getIdx(), cClass);
             // add class
             classArray.add(cClass);
-            classDict.put(psiClass.getQualifiedName(), classArray.size() - 1);
+            classDict.put(qualifiedName, classArray.size() - 1);
             index = classArray.size() - 1;
             cClass.setIdx(index);
         }
@@ -81,5 +83,9 @@ public class CClassDict {
         if (cClass != null) {
             cClass.getCMethods().add(cMethod);
         }
+    }
+
+    static public void removeMethod(CMethod cMethod) {
+
     }
 }
