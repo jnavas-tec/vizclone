@@ -1,44 +1,69 @@
 package cr.ac.tec.vizClone.utils;
 
-import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.List;
+import com.intellij.psi.JavaTokenType;
+import com.intellij.psi.tree.IElementType;
+import lombok.Data;
+
+import java.util.*;
 
 public final class TokenDict {
     private static List<Token> tokensArray = new ArrayList<>();
-    private static Hashtable<String, Integer> tokensDict = new Hashtable<>();
+    private static Map<IElementType, Integer> tokensDict = new Hashtable<>();
+    private static Map<String, Integer> idOrLiteralDict = new Hashtable<>();
 
     static public void reset() {
-        tokensArray = new ArrayList<>();
-        tokensDict = new Hashtable<>();
+        tokensArray.clear();
+        tokensDict.clear();
+        idOrLiteralDict.clear();
     }
 
-    private static class Token {
+    @Data
+    public static class Token {
         Integer tokenId;
-        String  token;
+        boolean idOrLiteral;
+        IElementType token;
+        String text;
     }
 
-    static public Integer getTokenId(String token) {
+static private void setNextToken(Token newToken) {
+        newToken.tokenId = tokensArray.size();
+        tokensArray.add(newToken);
+    }
+
+    static public Integer getTokenId(IElementType token) {
         if (tokensDict.get(token) == null) {
             Token newToken = new Token();
             newToken.token = token;
-            newToken.tokenId = tokensArray.size();
-            tokensArray.add(newToken);
+            newToken.idOrLiteral = false;
+            setNextToken(newToken);
             tokensDict.put(token, newToken.tokenId);
             return newToken.tokenId;
         }
         return tokensDict.get(token);
     }
 
-    static public String getToken(Integer tokenId) {
+    static public Integer getTokenId(String token) {
+        if (idOrLiteralDict.get(token) == null) {
+            Token newToken = new Token();
+            newToken.text = token;
+            newToken.idOrLiteral = true;
+            setNextToken(newToken);
+            idOrLiteralDict.put(token, newToken.tokenId);
+            return newToken.tokenId;
+        }
+        return idOrLiteralDict.get(token);
+    }
+
+    static public IElementType getToken(Integer tokenId) {
         if (tokenId >= tokensArray.size())
-            return "UNKNOWN";
+            return JavaTokenType.NULL_KEYWORD;
         else
             return tokensArray.get(tokenId).token;
     }
 
-    static public Hashtable<String, Integer> dict() {
+    static public Map<IElementType, Integer> dict() {
         return tokensDict;
     }
+
+    static public List<Token> list() { return tokensArray; }
 }

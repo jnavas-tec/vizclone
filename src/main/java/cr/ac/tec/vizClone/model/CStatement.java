@@ -17,4 +17,5 @@ public class CStatement {
     private CMethod cMethod;
     private List<Integer> tokens = new ArrayList<>();
     private PsiStatement psiStatement;
+    private String text = "";
 }

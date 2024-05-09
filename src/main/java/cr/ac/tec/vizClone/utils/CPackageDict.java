@@ -6,17 +6,15 @@ import cr.ac.tec.vizClone.model.CClass;
 import cr.ac.tec.vizClone.model.CMethod;
 import cr.ac.tec.vizClone.model.CPackage;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
+import java.util.*;
 
 public class CPackageDict {
     private static List<CPackage> packagesArray = new ArrayList<>();
-    private static Hashtable<String, Integer> packagesDict = new Hashtable<>();
+    private static Map<String, Integer> packagesDict = new Hashtable<>();
 
     static public void reset() {
-        packagesArray = new ArrayList<>();
-        packagesDict = new Hashtable<>();
+        packagesArray.clear();
+        packagesDict.clear();
     }
 
     static public Integer getPackageIdx(PsiPackage psiPackage) {
@@ -30,8 +28,8 @@ public class CPackageDict {
             cPackage.setName(psiPackage.getName());
             cPackage.setSignature(qualifiedName);
             // add package
+            index = packagesArray.size();
             packagesArray.add(cPackage);
-            index = packagesArray.size() - 1;
             packagesDict.put(qualifiedName, index);
             cPackage.setIdx(index);
         }
@@ -58,7 +56,7 @@ public class CPackageDict {
         return cPackage;
     }
 
-    static public Hashtable<String, Integer> dict() {
+    static public Map<String, Integer> dict() {
         return packagesDict;
     }
 

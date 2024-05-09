@@ -7,25 +7,23 @@ import cr.ac.tec.vizClone.model.CClass;
 import cr.ac.tec.vizClone.model.CMethod;
 import cr.ac.tec.vizClone.model.CStatement;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
+import java.util.*;
 
 public class CMethodDict {
     private static List<CMethod> methodArray = new ArrayList<>();
-    private static Hashtable<String, Integer> methodDict = new Hashtable<>();
+    private static Map<String, Integer> methodDict = new Hashtable<>();
 
     static public void reset() {
-        methodArray = new ArrayList<>();
-        methodDict = new Hashtable<>();
+        methodArray.clear();
+        methodDict.clear();
     }
 
     static public Integer getMethodIdx(PsiMethod psiMethod, List<LineColumn> lineColumns) {
         PsiClass containingClass = psiMethod.getContainingClass();
         String qualifiedName = containingClass.getQualifiedName();
         if (qualifiedName == null) qualifiedName = containingClass.getName();
-        String methodSignature =  (containingClass == null ? "" : qualifiedName + ".")
-                + psiMethod.getName() + psiMethod.getParameterList().getText();
+        String methodSignature = (containingClass == null ? "" : qualifiedName + ".")
+            + psiMethod.getName() + psiMethod.getParameterList().getText();
         Integer index = methodDict.get(methodSignature);
         if (index == null) {
             // retrieve class
@@ -33,6 +31,7 @@ public class CMethodDict {
             // initialize method
             CMethod cMethod = new CMethod();
             index = methodArray.size();
+            methodArray.add(cMethod);
             cMethod.setIdx(index);
             cMethod.setCClass(cClass);
             cMethod.setPsiMethod(psiMethod);
@@ -42,7 +41,6 @@ public class CMethodDict {
             cMethod.setToOffset(psiMethod.getTextRange().getEndOffset() - 1);
             cMethod.setFromLineColumn(lineColumns.get(cMethod.getFromOffset()));
             cMethod.setToLineColumn(lineColumns.get(cMethod.getToOffset()));
-            methodArray.add(cMethod);
             methodDict.put(methodSignature, cMethod.getIdx());
         }
         return index;
@@ -69,11 +67,11 @@ public class CMethodDict {
     }
 
     static public void removeMethod(CMethod method) {
-        methodArray.remove(methodDict.get(method.getSignature()));
+        methodArray.remove((int) methodDict.get(method.getSignature()));
         methodDict.remove(method.getSignature());
     }
 
-    static public Hashtable<String, Integer> dict() {
+    static public Map<String, Integer> dict() {
         return methodDict;
     }
 

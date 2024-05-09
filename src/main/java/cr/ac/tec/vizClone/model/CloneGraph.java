@@ -12,6 +12,7 @@ public class CloneGraph {
     private int numClones;
     private ArrayList<Clone> clones;
     private int numFragments;
+    private int numMethods;
     private int stripeHeight;
     private ArrayList<Fragment> fragments;
     private ArrayList<ClonePair> clonePairs;
@@ -32,8 +33,10 @@ public class CloneGraph {
 
     private final Random r = new Random();
 
-    public CloneGraph(int numFragments, int numClones, int stripeHeight, int minWeight, int maxWeight, int numWeightLevels) {
+    public CloneGraph(int numFragments, int numMethods, int numClones, int stripeHeight,
+                      int minWeight, int maxWeight, int numWeightLevels) {
         this.numFragments = numFragments;
+        this.numMethods = numMethods;
         this.numClones = numClones;
         this.stripeHeight = stripeHeight;
         this.setMinWeight(minWeight);
@@ -110,11 +113,13 @@ public class CloneGraph {
         }
     }
 
-    public CloneGraph(ArrayList<Clone> clones, ArrayList<Fragment> fragments, int minWeight, int maxWeight, int numWeightLevels) {
+    public CloneGraph(ArrayList<Clone> clones, ArrayList<Fragment> fragments, ArrayList<Method> methods,
+                      int minWeight, int maxWeight, int numWeightLevels) {
         this.clones = clones;
         this.numClones = clones.size();
         this.fragments = fragments;
         this.numFragments = fragments.size();
+        this.numMethods = methods.size();
         this.setMinWeight(minWeight);
         this.setMaxWeight(maxWeight);
         this.setNumWeightLevels(numWeightLevels);

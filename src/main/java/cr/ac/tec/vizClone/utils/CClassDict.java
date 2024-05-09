@@ -9,17 +9,15 @@ import cr.ac.tec.vizClone.model.CClass;
 import cr.ac.tec.vizClone.model.CMethod;
 import cr.ac.tec.vizClone.model.CStatement;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
+import java.util.*;
 
 public class CClassDict {
     private static List<CClass> classArray = new ArrayList<>();
-    private static Hashtable<String, Integer> classDict = new Hashtable<>();
+    private static Map<String, Integer> classDict = new Hashtable<>();
 
     static public void reset() {
-        classArray = new ArrayList<>();
-        classDict = new Hashtable<>();
+        classArray.clear();
+        classDict.clear();
     }
 
     static public Integer getClassIdx(PsiClass psiClass, List<LineColumn> lineColumns) {
@@ -42,9 +40,9 @@ public class CClassDict {
             cClass.setToLineColumn(lineColumns.get(cClass.getToOffset()));
             if (cClass.getCPackage() != null) CPackageDict.addClass(cClass.getCPackage().getIdx(), cClass);
             // add class
+            index = classArray.size();
             classArray.add(cClass);
-            classDict.put(qualifiedName, classArray.size() - 1);
-            index = classArray.size() - 1;
+            classDict.put(qualifiedName, index);
             cClass.setIdx(index);
         }
         return index;
@@ -70,7 +68,7 @@ public class CClassDict {
         return cClass;
     }
 
-    static public Hashtable<String, Integer> dict() {
+    static public Map<String, Integer> dict() {
         return classDict;
     }
 

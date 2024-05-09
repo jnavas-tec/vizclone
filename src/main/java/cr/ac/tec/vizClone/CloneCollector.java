@@ -8,42 +8,79 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiUtilCore;
 import cr.ac.tec.vizClone.model.CMethod;
 import cr.ac.tec.vizClone.model.Clone;
-import cr.ac.tec.vizClone.model.ClonePair;
 import cr.ac.tec.vizClone.model.Fragment;
+import cr.ac.tec.vizClone.model.Method;
 import cr.ac.tec.vizClone.utils.*;
+import groovy.lang.Tuple2;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Data
 public class CloneCollector {
 
-    public static double MIN_SIM = 0.7;
-    public static double MIN_SENT_SIM = 0.8;
-    public static int MIN_TOKENS = 50;
-    public static int MIN_SENT = 7;
+    public static double MIN_SIM = 0.95; // 0.7;
+    public static double MIN_SENT_SIM = 0.95;
+    public static int MIN_TOKENS = 200; // 50;
+    public static int MIN_SENT = 20; // 7;
     public static int NUM_WEIGHT_LEVELS = 4;
+    public static int OVERLAP_PERCENTAGE = 60;
 
     private ArrayList<Clone> clones = new ArrayList<>();
     private ArrayList<Fragment> fragments = new ArrayList<>();
+    private ArrayList<Method> methods = new ArrayList<>();
 
-    private void collectJavaClasses(@NotNull Project project) {
+    private LocalDateTime previousDateTime = null;
+
+    private void printLocalDateTime(String message) {
+        long elapsedMinutes = 0;
+        long elapsedSeconds = 0;
+        LocalDateTime currentDateTime = LocalDateTime.now();
+        if (previousDateTime != null) {
+            elapsedMinutes = previousDateTime.until(currentDateTime, ChronoUnit.MINUTES);
+            elapsedSeconds = previousDateTime.until(currentDateTime, ChronoUnit.SECONDS) - elapsedMinutes * 60;
+            System.out.println(String.format(" (time ellapsed = %d:%d)", elapsedMinutes, elapsedSeconds));
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        System.out.print(String.format("%s: %s", formatter.format(currentDateTime), message));
+        previousDateTime = currentDateTime;
+    }
+
+    private void collectMethodsMinhashSignatures(@NotNull Project project) {
         this.resetDictionaries();
         String projectName = project.getName();
         VirtualFile[] vSourceRoots = ProjectRootManager.getInstance(project)
-                .getContentSourceRoots();
+            .getContentSourceRoots();
+        printLocalDateTime("Collecting java virtual files...");
         List<VirtualFile> javaVFilesList = Arrays.stream(vSourceRoots)
-                .map(vFile -> CloneCollector.collectJavaClassesInFolder(vFile.getPath(), vFile))
-                .collect(Collectors.toList())
-                .stream()
-                .flatMap(l -> l.stream())
-                .collect(Collectors.toList());
+            .map(vFile -> CloneCollector.collectJavaClassesInFolder(vFile.getPath(), vFile))
+            .collect(Collectors.toList())
+            .stream()
+            .flatMap(l -> l.stream())
+            .collect(Collectors.toList());
+        printLocalDateTime("Collecting java psi files...");
         List<PsiFile> javaPsiFilesList = PsiUtilCore.toPsiFiles(PsiManager.getInstance(project), javaVFilesList);
 
+        printLocalDateTime("Collecting shingles...");
+
+        CloneConfig cloneConfig = new CloneConfig(true, true);
+
         javaPsiFilesList.stream()
-                .forEach(javaPsiFile -> javaPsiFile.accept(new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS)));
+            .forEach(javaPsiFile -> javaPsiFile.accept(new ShinglingRecursiveElementVisitor(cloneConfig)));
+
+        printLocalDateTime(String.format("Collecting methods from %d Java Psi files...", javaPsiFilesList.size()));
+        javaPsiFilesList.stream()
+                .forEach(javaPsiFile -> javaPsiFile.accept(
+                    new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS, cloneConfig))
+                );
+
+        printLocalDateTime(String.format("Collecting minhash signatures for %d methods...", CMethodDict.list().size()));
+        ShingleDict.setMinhashSignatures(CMethodDict.list(), ShingleDict.NUM_MIN_HASHES);
     }
 
     private static List<VirtualFile> collectJavaClassesInFolder(@NotNull String sourcePath, @NotNull VirtualFile vFolder) {
@@ -62,6 +99,11 @@ public class CloneCollector {
         return javaVFilesList;
     }
 
+    static private ArrayList<String> cloneNames = new ArrayList<>(Arrays.asList(
+        "org.jetbrains.plugins.groovy.editor.GroovyReferenceCopyPasteProcessor.findReferencesToRestore",
+        "org.jetbrains.plugins.groovy.editor.GroovyReferenceCopyPasteProcessor.findReferencesToRestoreClone1",
+        "org.jetbrains.plugins.groovy.editor.GroovyReferenceCopyPasteProcessor.findReferencesToRestoreClone2"));
+
     public void collectJavaClones(@NotNull Project project, double minSim, double minSentSim, int minTokens, int minSent,
                                   int numWeightLevels) {
         MIN_SIM = minSim;
@@ -69,171 +111,83 @@ public class CloneCollector {
         MIN_TOKENS = minTokens;
         MIN_SENT = minSent;
         NUM_WEIGHT_LEVELS = numWeightLevels;
-        clones = new ArrayList<>();
+        //clones = new ArrayList<>();
         fragments = new ArrayList<>();
-        collectJavaClasses(project);
+        collectMethodsMinhashSignatures(project);
 
+        printLocalDateTime("Collecting LSH for minhash signatures and generating similar pairs...");
         List<CMethod> methods = CMethodDict.list();
-        int numMethods = methods.size() - 1;
-        SmithWatermanGotoh swg = new SmithWatermanGotoh();
-        this.clones = new ArrayList<>();
-        Clone clone;
-        for (int i = 0; i < numMethods; i++) {
-            CMethod methodA = methods.get(i);
-            if (methodA.getCStatements().size() >= MIN_SENT) {
-                for (int j = i + 1; j <= numMethods; j++) {
-                    CMethod methodB = methods.get(j);
-                    if (methodB.getCStatements().size() >= MIN_SENT) {
-                        swg.init();
-                        if (swg.config(methodA, methodB, MIN_SIM, MIN_SENT_SIM, MIN_TOKENS, MIN_SENT, NUM_WEIGHT_LEVELS)) {
-                            clone = swg.getClone();
-                            if (clone != null) {
-                                clone.setIdx(clones.size());
-                                clones.add(clone);
-                            }
-                        }
-                        swg.release();
-                    }
-                }
-            }
-        }
-        this.mergeClonePairs(50);
-    }
+        //List<Tuple2<Integer, Integer>> similarPairs = ShingleDict.lshMinhashSignatures(methods, ShingleDict.b, ShingleDict.r);
+        List<Clone> similarPairs = ShingleDict.lshMinhashSignatures(methods, ShingleDict.b, ShingleDict.r);
 
-    private void mergeClonePairs(int overlapPercentage) {
-        this.collectAndSortFragments();
-        this.mergeFragments(overlapPercentage);
-    }
 
-    private void collectAndSortFragments() {
-        clones
-            .stream()
+
+
+/*
+        System.out.printf("%s Shingle Set -> %s%n", methods.get(5121).getName(), methods.get(5121).getShingleSet().toString());
+        System.out.printf("%s Shingle Set -> %s%n", methods.get(5122).getName(), methods.get(5122).getShingleSet().toString());
+        System.out.printf("%s Shingle Set -> %s%n", methods.get(5123).getName(), methods.get(5123).getShingleSet().toString());
+
+        System.out.printf("%s Shingle Signature -> %s%n", methods.get(5121).getName(), methods.get(5121).getShingleSignature().toString());
+        System.out.printf("%s Shingle Signature -> %s%n", methods.get(5122).getName(), methods.get(5122).getShingleSignature().toString());
+        System.out.printf("%s Shingle Signature -> %s%n", methods.get(5123).getName(), methods.get(5123).getShingleSignature().toString());
+*/
+
+
+
+        printLocalDateTime(String.format("Collecting clones from %d similar pairs...", similarPairs.size()));
+        this.clones = (ArrayList<Clone>)similarPairs
+            .parallelStream()
+            .map(this::verifyAndGroupClones)
+            .flatMap(cloneList -> cloneList.stream())
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+        /*
+        System.out.println("------------------------------------------------------------------------");
+        this.clones.stream()
             .map(clone -> clone.getClonePairs())
-            .flatMap(l -> l.stream())
-            .forEach(clonePair -> {
-                fragments.add(clonePair.getFragments().get(0));
-                fragments.add(clonePair.getFragments().get(1));
-            });
-        Collections.sort(fragments, new Comparator<Fragment>() {
-            public int compare(Fragment f1, Fragment f2) {
-                return f1.getKey().compareTo(f2.getKey());
-            }
-        });
-        // fix fragments indices
-        for (int f = 0; f < fragments.size(); f++) {
-            fragments.get(f).setIdx(f);
-        }
+            .flatMap(clonePairList -> clonePairList.stream())
+            .map(clonePair -> clonePair.getFragments())
+            .flatMap(fragmentList -> fragmentList.stream())
+            .forEach(fragment -> System.out.println(String.format("Clone: %d Fragment: %d- %d-%d",
+                fragment.getClone().getIdx(),
+                fragment.getCMethod().getIdx(),
+                fragment.getFromLineColumn().line,
+                fragment.getToLineColumn().line)));
+        System.out.println("------------------------------------------------------------------------");
+         */
+        printLocalDateTime(String.format("Fixing %d collected clones...", this.clones.size()));
+        for (int c = 0; c < this.clones.size(); c++) this.clones.get(c).fixClone(c);
+        printLocalDateTime(String.format("Collecting fragments for %d clones...", this.clones.size()));
+        FragmentDict.collectFragments(this.clones, this.fragments, this.methods);
+        printLocalDateTime("Finished processing.\n");
+        /*
+        System.out.println("------------------------------------------------------------------------");
+        CMethodDict.list()
+            .stream()
+            .forEach(method -> System.out.println(String.format("%d - %s", method.getIdx(), method.getSignature())));
+        System.out.println("------------------------------------------------------------------------");
+        this.clones.stream()
+            .map(clone -> clone.getClonePairs())
+            .flatMap(clonePairList -> clonePairList.stream())
+            .map(clonePair -> clonePair.getFragments())
+            .flatMap(fragmentList -> fragmentList.stream())
+            .forEach(fragment -> System.out.println(String.format("Clone: %d Fragment: %d- %d-%d",
+                fragment.getClone().getIdx(),
+                fragment.getCMethod().getIdx(),
+                fragment.getFromLineColumn().line,
+                fragment.getToLineColumn().line)));
+        System.out.println("------------------------------------------------------------------------");
+         */
     }
 
-    private Hashtable<Integer, Integer> collectFragmentsMap() {
-        Hashtable<Integer, Integer> fragmentsMap = new Hashtable<>();
-        for (int f = 0; f < fragments.size(); f++) {
-            Fragment fragment = fragments.get(f);
-            int idx = f;
-            if (fragmentsMap.containsKey(fragment.getCMethod().getIdx()))
-                idx = Math.min(fragmentsMap.get(fragment.getCMethod().getIdx()), f);
-            fragmentsMap.put(fragment.getCMethod().getIdx(), idx);
-        }
-        return fragmentsMap;
-    }
-
-    // Pre: fragment list must be sorted by FragmentKey(method, fromOffset, toOffset)
-    // Merge:
-    //     c1 -> { cp1 -> f1(A) - f2(B) }
-    //     c2 -> { cp2 -> f3(A) - f4(C) }
-    //     c3 -> { cp3 -> f5(B) - f6(C) }
-    // Into:
-    //     c1 -> { cp1 -> f1(A) - f2(B),   c2 -> cp2 -> f3(A) - f4(C),   c3 -> cp3 -> f5(B) - f6(C) }
-    private void mergeFragments(int overlapPercentage) {
-        Hashtable<Integer, Integer> fragmentsMap = this.collectFragmentsMap();
-        for (int i = 0; i < fragments.size() - 1; i++) {
-            // fragment A from c1 and cp1
-            Fragment f1 = fragments.get(i);
-            //if (f1.isMerged()) continue;
-            for (int j = i + 1; j < fragments.size(); j++) {
-                // fragment A from c2 and cp2
-                Fragment f3 = fragments.get(j);
-                if (!f1.fromSameMethod(f3)) break;
-                //if (f3.isMerged()) continue;
-                // if the two fragments can be merged
-                if (f1.canBeMerged(f3, overlapPercentage)) {
-                    // move second clone pair and methods to first clone and fix references
-                    Clone c1 = f1.getClone();
-                    Clone c2 = f3.getClone();
-                    ClonePair cp2 = f3.getClonePair();
-                    int cp2Idx = cp2.getIdxOnClone();
-                    c2.fixClonePairs(cp2Idx);
-                    c2.setNumberOfClonePairs(c2.getClonePairs().size());
-                    cp2.setClone(c1);
-                    cp2.setIdxOnClone(c1.getClonePairs().size());
-                    cp2.setIdx(c1.getClonePairs().size());
-                    c1.getClonePairs().add(cp2);
-                    c1.setNumberOfClonePairs(c1.getClonePairs().size());
-                    c1.setMaxWeight(Math.max(c1.getMaxWeight(), cp2.getWeight()));
-                    c1.setMaxSim(Math.max(c1.getMaxSim(), cp2.getSim()));
-                    c1.setMaxLevel(Math.max(c1.getMaxLevel(), cp2.getLevel()));
-                    c1.getMethods().add(c2.getMethods().get(cp2Idx * 2));
-                    c1.getMethods().add(c2.getMethods().get(cp2Idx * 2 + 1));
-                    c2.getMethods().remove(cp2Idx * 2);
-                    c2.getMethods().remove(cp2Idx * 2);
-                    // mark fragment A moved from c2 to c1 as merged
-                    //f3.setMerged(true);
-                    // fragment B from c1 and cp1
-                    Fragment f2 = f1.getClonePair().getFragments().get(1 - f1.getIdxOnClonePair());
-                    // fragment C from c2 and cp2
-                    Fragment f4 = f3.getClonePair().getFragments().get(1 - f3.getIdxOnClonePair());
-                    // locate third mergeable fragment
-                    ClonePair cp3 = findMergeableClonePair(fragmentsMap, f2, f4, overlapPercentage);
-                    if (cp3 != null) {
-                        // fragments B and C from c3 and cp3
-                        Fragment f5 = cp3.getFragments().get(0);
-                        Fragment f6 = cp3.getFragments().get(1);
-                        // move third clone pair to first clone and fix references
-                        Clone c3 = f5.getClone();
-                        int cp3Idx = cp3.getIdxOnClone();
-                        c3.fixClonePairs(cp3Idx);
-                        c3.setNumberOfClonePairs(c3.getClonePairs().size());
-                        cp3.setClone(c1);
-                        cp3.setIdxOnClone(c1.getClonePairs().size());
-                        cp3.setIdx(c1.getClonePairs().size());
-                        c1.getClonePairs().add(cp3);
-                        c1.setNumberOfClonePairs(c1.getClonePairs().size());
-                        c1.setMaxWeight(Math.max(c1.getMaxWeight(), cp3.getWeight()));
-                        c1.setMaxSim(Math.max(c1.getMaxSim(), cp3.getSim()));
-                        c1.setMaxLevel(Math.max(c1.getMaxLevel(), cp3.getLevel()));
-                        c1.getMethods().add(c3.getMethods().get(cp3Idx * 2));
-                        c1.getMethods().add(c3.getMethods().get(cp3Idx * 2 + 1));
-                        c3.getMethods().remove(cp3Idx * 2);
-                        c3.getMethods().remove(cp3Idx * 2);
-                    }
-                }
-            }
-        }
-        // remove clones with no clone pairs
-        for (int c = clones.size() - 1; c >= 0; c--) {
-            if (clones.get(c).getClonePairs().size() == 0) {
-                clones.remove(c);
-            }
-        }
-        // fix indexes
-        for (int c = 0; c < clones.size(); c++) {
-            clones.get(c).setIdx(c);
-        }
-    }
-
-    private ClonePair findMergeableClonePair(Hashtable<Integer, Integer> fragmentsMap,
-                                             Fragment f2, Fragment f4, int overlapPercentage) {
-        int numFrags = fragments.size();
-        for (int f = fragmentsMap.get(f2.getCMethod().getIdx()); f < numFrags && f2.fromSameMethod(fragments.get(f)); f++) {
-            ClonePair cp3 = fragments.get(f).getClonePair();
-            int f5Side = f2.fromSameMethod(cp3.getFragments().get(0)) ? 0 : 1;
-            int f6Side = 1 - f5Side;
-            Fragment f5 = cp3.getFragments().get(f5Side);
-            Fragment f6 = cp3.getFragments().get(f6Side);
-            if (f2.canBeMerged(f5, overlapPercentage) || f4.canBeMerged(f6, overlapPercentage))
-                return cp3;
-        }
-        return null;
+    private List<Clone> verifyAndGroupClones(Clone clone) {
+        return new SmithWatermanGotoh()
+            .verifyAndGroupClone(clone, MIN_SIM, MIN_SENT_SIM, MIN_TOKENS, MIN_SENT, NUM_WEIGHT_LEVELS, OVERLAP_PERCENTAGE);
+        /*
+        return new SmithWatermanGotoh()
+            .verifyAndGroupClone(clone, 0.7, 0.7, MIN_TOKENS, MIN_SENT, NUM_WEIGHT_LEVELS, OVERLAP_PERCENTAGE);
+         */
     }
 
     private void resetDictionaries() {
@@ -242,6 +196,7 @@ public class CloneCollector {
         CPackageDict.reset();
         FragmentDict.reset();
         NestedSentenceDict.reset();
+        ShingleDict.reset();
         StatementDict.reset();
         TokenDict.reset();
     }

@@ -22,11 +22,23 @@ public class Fragment {
     private int toOffset;
     private LineColumn fromLineColumn;
     private LineColumn toLineColumn;
-    private boolean merged = false;
+
+    public void initFragment(CMethod cMethod, int fromStatement, int toStatement) {
+        this.setCPackage(cMethod.getCClass().getCPackage());
+        this.setCClass(cMethod.getCClass());
+        this.setCMethod(cMethod);
+        this.setFromStatement(fromStatement);
+        this.setToStatement(toStatement);
+        this.setNumberOfStatements(toStatement - fromStatement + 1);
+        this.setFromOffset(cMethod.getCStatements().get(fromStatement).getFromOffset());
+        this.setToOffset(cMethod.getCStatements().get(toStatement).getToOffset());
+        this.setFromLineColumn(cMethod.getCStatements().get(fromStatement).getFromLineColumn());
+        this.setToLineColumn(cMethod.getCStatements().get(toStatement).getToLineColumn());
+    }
 
     public String toString() {
-        return String.format("idx:%d  merged:%b  clone:%d  clonePair:%d  idxOnClonePair:%d  methodIdx:%d  from:%d  to:%d",
-            idx, merged, clonePair.getClone().getIdx(), clonePair.getIdx(), idxOnClonePair, cMethod.getIdx(), fromOffset, toOffset);
+        return String.format("idx:%d  clone:%d  clonePair:%d  idxOnClonePair:%d  methodIdx:%d  from:%d  to:%d",
+            idx, clonePair.getClone().getIdx(), clonePair.getIdx(), idxOnClonePair, cMethod.getIdx(), fromOffset, toOffset);
     }
 
     public Clone getClone() {
@@ -35,6 +47,24 @@ public class Fragment {
             clone = clonePair.getClone();
         }
         return clone;
+    }
+
+    public boolean overlaps(Fragment fragment, int overlapPercentage) {
+        // self check
+        if (this == fragment) return true;
+        // zero overlap
+        if (!this.getCMethod().getSignature().equals(fragment.getCMethod().getSignature())) return false;
+        // zero overlap
+        if (fragment.fromOffset > toOffset || fromOffset > fragment.toOffset) return false;
+        // find endpoints of intersection
+        int left = Math.max(fromOffset, fragment.fromOffset);
+        int right = Math.min(toOffset, fragment.toOffset);
+        // calculate intersection
+        int intersection = Math.max(right - left, 0);
+        // calculate maximum length
+        int maxLength = Math.max(fragment.toOffset - toOffset, fragment.fromOffset - fromOffset);
+        // calculate overlap and compare to minPercent
+        return intersection * 100 >= overlapPercentage * maxLength;
     }
 
     public boolean canBeMerged(Fragment f, int overlapPercentage) {

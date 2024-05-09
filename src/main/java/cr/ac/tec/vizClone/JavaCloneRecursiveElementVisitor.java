@@ -3,6 +3,7 @@ package cr.ac.tec.vizClone;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.util.text.LineColumn;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.tree.JavaElementType;
 import com.intellij.psi.tree.IElementType;
 import cr.ac.tec.vizClone.model.CClass;
 import cr.ac.tec.vizClone.model.CMethod;
@@ -34,11 +35,15 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     private CStatement cStatement = null;
     private Integer minSentences = 0;
     private Integer minTokens = 0;
+    private CloneConfig cloneConfig = new CloneConfig(false, false);
+    private StringBuilder methodSourceCode = null;
+    private StringBuilder sentenceSourceCode = null;
 
-    public JavaCloneRecursiveElementVisitor(CloneCollector cloneCollector, Integer minSentences, Integer minTokens) {
+    public JavaCloneRecursiveElementVisitor(CloneCollector cloneCollector, Integer minSentences, Integer minTokens, CloneConfig cloneConfig) {
         this.minSentences = minSentences;
         this.minTokens = minTokens;
         this.cloneCollector = cloneCollector;
+        if (cloneConfig != null) this.cloneConfig = cloneConfig;
     }
 
     @Override
@@ -71,37 +76,29 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
 
     @Override
     public void visitMethod(PsiMethod method) {
-        if (visitingClass && !visitingAnonymousClass && !visitingMethod) {
-            CMethod previousCMethod = cMethod;
-            //System.out.println(method.getName());
-            cMethod = CMethodDict.getMethod(method, lineColumns);
-            CClassDict.addMethod(cClass.getIdx(), cMethod);
-            boolean previousVisitingMethod = visitingMethod;
-            visitingMethod = true;
+        if (this.visitingClass && !this.visitingAnonymousClass && !this.visitingMethod) {
+            this.cMethod = CMethodDict.getMethod(method, this.lineColumns);
+            this.visitingMethod = true;
+            this.methodSourceCode = new StringBuilder();
             super.visitMethod(method);
             // add method if it has minimun number of sentences
-            if (cMethod.getCStatements().size() < minSentences || cMethod.getNumTokens() < minTokens) {
-                CMethodDict.removeMethod(cMethod);
+            if (this.cMethod.getCStatements().size() < this.minSentences || this.cMethod.getNumTokens() < this.minTokens) {
+                CMethodDict.removeMethod(this.cMethod);
             }
-            visitingMethod = previousVisitingMethod;
-            cMethod = previousCMethod;
+            else {
+                CClassDict.addMethod(cClass.getIdx(), cMethod);
+                this.collectMethodShingles();
+            }
+            this.visitingMethod = false;
+            this.cMethod = null;
         }
         else
             super.visitMethod(method);
+    }
 
-        if (!visitingAnonymousClass) {
-            /*
-            String iElementTypes = methodElements.stream()
-                    .map(elem -> elem.stream().map(el -> el.toString()).collect(Collectors.joining(",")))
-                    .collect(Collectors.joining(String.format("%n     ")));
-            String statementTypes = methodStatements.stream()
-                    .map(statement -> statement.toString())
-                    .collect(Collectors.joining(String.format("%n     ")));
-            System.out.println(String.format("%n"));
-            System.out.println(method.getContainingClass().getQualifiedName() + "." + method.getName() + method.getParameterList().getText());
-            System.out.println(iElementTypes);
-            System.out.println(statementTypes);
-             */
+    private void collectMethodShingles() {
+        for (int i = 0; i < this.methodSourceCode.length() - ShinglingRecursiveElementVisitor.SHINGLE_SIZE; i++) {
+            this.cMethod.getShingleSet().add(ShingleDict.getShingleId(this.methodSourceCode.substring(i, i + ShinglingRecursiveElementVisitor.SHINGLE_SIZE)));
         }
     }
 
@@ -110,13 +107,11 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         boolean previousVisitingCodeBlock = visitingCodeBlock;
         visitingCodeBlock = true;
         super.visitCodeBlock(block);
-        //PsiStatement[] statements = block.getStatements();
         visitingCodeBlock = previousVisitingCodeBlock;
     }
 
     private void addStatement(PsiStatement psiStatement) {
-        String statementName = psiStatement.getNode().getElementType().getDebugName();
-        Integer statementId = StatementDict.getStatementId(statementName);
+        Integer statementId = StatementDict.getStatementId(psiStatement.getNode().getElementType());
         cStatement = new CStatement();
         cStatement.setStatementId(statementId);
         cStatement.setPsiStatement(psiStatement);
@@ -129,8 +124,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     }
 
     private void addStatement(PsiStatement psiStatement, PsiKeyword psiKeyword) {
-        String statementName = psiKeyword.getNode().getElementType().getDebugName();
-        Integer statementId = StatementDict.getStatementId(statementName);
+        Integer statementId = StatementDict.getStatementId(psiKeyword.getNode().getElementType());
         cStatement = new CStatement();
         cStatement.setStatementId(statementId);
         cStatement.setPsiStatement(psiStatement);
@@ -144,43 +138,17 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
 
     @Override
     public void visitStatement(PsiStatement psiStatement) {
-
-        /*
-        if (visitingClass && !visitingAnonymousClass && visitingMethod && visitingStatement) {
-            NestedSentenceDict.setNestedSentence(
-                    methodStatements.get(methodStatements.size() - 1).getDebugName(),
-                    statement.getNode().getElementType().getDebugName());
-
-//            PsiMethod containingMethod = PsiTreeUtil.getParentOfType(statement, PsiMethod.class);
-//            if (containingMethod != null) {
-//                PsiClass containingClass = containingMethod.getContainingClass();
-//                if (containingClass != null) {
-//                    System.out.println("Class '" + containingClass.getQualifiedName() + "', " +
-//                            "\n\tMethod '" + containingMethod.getName() + containingMethod.getParameterList().getText() + "', " +
-//                            "\n\tSentence '" + statement.getNode().getElementType().getDebugName() + "' " +
-//                            "\n\tis inside of Sentence '" + methodStatements.get(methodStatements.size() - 1).getDebugName() + "'");
-//                }
-//                else {
-//                    System.out.println("Method '" + containingMethod.getName() + containingMethod.getParameterList().getText() + "', " +
-//                            "\n\tSentence '" + statement.getNode().getElementType().getDebugName() + "' " +
-//                            "\n\tis inside of Sentence '" + methodStatements.get(methodStatements.size() - 1).getDebugName() + "'");
-//                }
-//            }
-//            else {
-//                System.out.println("Sentence '" + statement.getNode().getElementType().getDebugName() + "' " +
-//                        "\n\tis inside of Sentence '" + methodStatements.get(methodStatements.size() - 1).getDebugName() + "'");
-//            }
-
-        }
-        */
-
         CStatement previousCStatement = cStatement;
+
+        StringBuilder previousStatementSourceCode= this.sentenceSourceCode;
+        this.sentenceSourceCode = new StringBuilder();
 
         if (visitingClass && !visitingAnonymousClass && visitingMethod) {
             addStatement(psiStatement);
-            if ("BLOCK_STATEMENT".equals(StatementDict.getStatement(cStatement.getStatementId()))) {
-                cStatement.getTokens().add(TokenDict.getTokenId("LBRACE"));
+            if (JavaElementType.BLOCK_STATEMENT.equals(StatementDict.getStatement(cStatement.getStatementId()))) {
+                cStatement.getTokens().add(TokenDict.getTokenId(JavaTokenType.LBRACE));
                 cMethod.setNumTokens(cMethod.getNumTokens() + 1);
+                cStatement.setText("{");
             }
         }
 
@@ -190,47 +158,72 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         visitingStatement = previousVisitingStatement;
 
         if (visitingClass && !visitingAnonymousClass && visitingMethod) {
-            if ("BLOCK_STATEMENT".equals(StatementDict.getStatement(cStatement.getStatementId()))) {
+            if (JavaElementType.BLOCK_STATEMENT.equals(StatementDict.getStatement(cStatement.getStatementId()))) {
                 addStatement(psiStatement);
-                cStatement.getTokens().add(TokenDict.getTokenId("RBRACE"));
+                cStatement.getTokens().add(TokenDict.getTokenId(JavaTokenType.RBRACE));
                 cMethod.setNumTokens(cMethod.getNumTokens() + 1);
+                cStatement.setText("}");
             }
-            else CMethodDict.sumStatementTokens(cMethod.getIdx(), cStatement);
+            else {
+                CMethodDict.sumStatementTokens(cMethod.getIdx(), cStatement);
+                cStatement.setText(this.sentenceSourceCode.toString());
+            }
         }
 
         cStatement = previousCStatement;
+        this.sentenceSourceCode = previousStatementSourceCode;
     }
 
     @Override
     public void visitKeyword(@NotNull PsiKeyword keyword) {
         if (cStatement != null &&
-            "IF_STATEMENT".equals(StatementDict.getStatement(cStatement.getStatementId())) &&
-            "ELSE_KEYWORD".equals(keyword.getTokenType().getDebugName())) {
+            JavaElementType.IF_STATEMENT.equals(StatementDict.getStatement(cStatement.getStatementId())) &&
+            JavaTokenType.ELSE_KEYWORD.equals(keyword.getTokenType().getDebugName())) {
             addStatement(cStatement.getPsiStatement(), keyword);
+            cStatement.setText("else");
             cMethod.setNumTokens(cMethod.getNumTokens() + 1);
         }
         super.visitKeyword(keyword);
     }
 
+    private static ArrayList<IElementType> braceElements = new ArrayList<>(Arrays.asList(
+        JavaTokenType.LBRACE, JavaTokenType.RBRACE
+    ));
+
     @Override
     public void visitElement(@NotNull PsiElement element) {
         ASTNode astNode = element.getNode();
-        String elementType = astNode.getElementType().toString();
-        String braceElements[] = { "LBRACE", "RBRACE" };
+        IElementType elementType = astNode.getElementType();
         if (visitingClass && visitingMethod && visitingCodeBlock && visitingStatement
             && cStatement != null
             && element.getChildren().length == 0
             && astNode.getTextLength() > 0
-            && !elementType.equals("WHITE_SPACE")
-            && !elementType.equals("END_OF_LINE_COMMENT")
-            && (!Arrays.asList(braceElements).contains(elementType) ||
-                !"BLOCK_STATEMENT".equals(StatementDict.getStatement(cStatement.getStatementId()))))
+            && !elementType.equals(JavaTokenType.WHITE_SPACE)
+            && !elementType.equals(JavaTokenType.END_OF_LINE_COMMENT)
+            && (!braceElements.contains(elementType) ||
+                !JavaElementType.BLOCK_STATEMENT.equals(StatementDict.getStatement(cStatement.getStatementId()))))
         {
-            String tokenName = element.getNode().getElementType().getDebugName();
-            Integer tokenId = TokenDict.getTokenId(tokenName);
+            String tokenText = element.getNode().getText();
+            Integer tokenId = doGenericComparison(elementType) ? TokenDict.getTokenId(elementType) : TokenDict.getTokenId(tokenText);
             cStatement.getTokens().add(tokenId);
+            this.methodSourceCode.append(doGenericComparison(elementType) ? elementType.getDebugName() : element.getNode().getText());
+            this.methodSourceCode.append(" ");
+            this.sentenceSourceCode.append(element.getNode().getText());
+            this.sentenceSourceCode.append(" ");
         }
         super.visitElement(element);
+    }
+
+    private static ArrayList<IElementType> literalTokens = new ArrayList<>(Arrays.asList(
+        JavaTokenType.CHARACTER_LITERAL, JavaTokenType.LONG_LITERAL, JavaTokenType.DOUBLE_LITERAL,
+        JavaTokenType.STRING_LITERAL, JavaTokenType.FLOAT_LITERAL, JavaTokenType.INTEGER_LITERAL,
+        JavaTokenType.TEXT_BLOCK_LITERAL
+    ));
+
+    private boolean doGenericComparison(IElementType elementType) {
+        if (literalTokens.contains(elementType) && !cloneConfig.isAnyLiteral()) return false;
+        if (JavaTokenType.IDENTIFIER.equals(elementType) && !cloneConfig.isAnyIdentifier()) return false;
+        return true;
     }
 
     private static List<LineColumn> mapOffsetToLineColumn(@NotNull CharSequence text) {

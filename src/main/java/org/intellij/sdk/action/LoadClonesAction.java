@@ -27,7 +27,8 @@ public class LoadClonesAction extends AnAction {
         CloneCollector collector = new CloneCollector();
         collector.collectJavaClones(event.getProject(), CloneCollector.MIN_SIM, CloneCollector.MIN_SENT_SIM,
             CloneCollector.MIN_TOKENS, CloneCollector.MIN_SENT, CloneCollector.NUM_WEIGHT_LEVELS);
-        VizCloneToolWindowFactory.getInstance(event.getProject(), collector, collector.getClones(), collector.getFragments()).showVizClones();
+        VizCloneToolWindowFactory.getInstance(event.getProject(), collector,
+            collector.getClones(), collector.getFragments(), collector.getMethods()).showVizClones();
         //VizCloneToolWindowFactory.getTestInstance(event.getProject(), collector, collector.getClones(), collector.getFragments()).showVizClones();
     }
 }

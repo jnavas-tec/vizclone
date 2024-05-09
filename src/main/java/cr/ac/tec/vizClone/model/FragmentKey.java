@@ -11,7 +11,6 @@ import java.util.Objects;
 @Data
 public class FragmentKey implements Comparable<FragmentKey> {
     private int methodIdx;
-    private String methodSignature;
     private int fromOffset;
     private int toOffset;
     private int idx;
@@ -20,12 +19,12 @@ public class FragmentKey implements Comparable<FragmentKey> {
         return String.format("methodIdx:%d  fromOffset:%d  toOffset:%d  idx:%d", methodIdx, fromOffset, toOffset, idx);
     }
 
-    public FragmentKey(int methodIdx, String methodSignature, int fromOffset, int toOffset, int idx) {
+    public FragmentKey(int methodIdx, int fromOffset, int toOffset) {
         this.methodIdx = methodIdx;
-        this.methodSignature = methodSignature;
+        //this.methodSignature = methodSignature;
         this.fromOffset = fromOffset;
         this.toOffset = toOffset;
-        this.idx = idx;
+        this.idx = 0;
     }
 
     public int compareTo(@NotNull FragmentKey fk) {

@@ -1,8 +1,8 @@
 package cr.ac.tec.vizClone;
 
 import cr.ac.tec.vizClone.model.*;
-import cr.ac.tec.vizClone.utils.FragmentDict;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class SmithWatermanGotoh {
@@ -21,6 +21,7 @@ public class SmithWatermanGotoh {
     private int[][] q;            // horizontal gap score matrix for statements
     private int[][] a0;           // vertical start of clone
     private int[][] b0;           // horizontal start of clone
+    private boolean[][] g;        // false-match has no gaps, true-match has gaps
     private int[][] at;           // number of tokens in left sentences
     private int[][] bt;           // number of tokens in upper sentences
     private double[][] s;         // similitude in range 0..1000 for sentences
@@ -111,12 +112,14 @@ public class SmithWatermanGotoh {
         this.q  = new int[m][n];
         this.a0 = new int[m][n];
         this.b0 = new int[m][n];
+        this.g  = new boolean[m][n];
         this.at = new int[m][n];
         this.bt = new int[m][n];
         this.s  = new double[m][n];
 
-        for (int i = 0; i < this.m; i++) { this.h[i][0] = this.p[i][0] = this.q[i][0] = this.a0[i][0] = 0; }
-        for (int j = 0; j < this.n; j++) { this.h[0][j] = this.p[0][j] = this.q[0][j] = this.b0[0][j] = 0; }
+        for (int i = 0; i < this.m; i++) { this.h[i][0] = this.p[i][0] = this.q[i][0] = this.a0[i][0] = 0; this.g[i][0] = true; }
+        for (int j = 0; j < this.n; j++) { this.h[0][j] = this.p[0][j] = this.q[0][j] = this.b0[0][j] = 0; this.g[0][j] = true; }
+        this.g[0][0] = false;
 
         this.maxt = 0;
         for (int x = 0; x < this.a.size(); x++) this.maxt = Math.max(this.maxt,this.a.get(x).getTokens().size());
@@ -154,14 +157,15 @@ public class SmithWatermanGotoh {
     {
         if (configured)
         {
-            this.a = null;
-            this.b = null;
-            this.h = null;
-            this.p = null;
-            this.q = null;
-            this.s = null;
+            this.a  = null;
+            this.b  = null;
+            this.h  = null;
+            this.p  = null;
+            this.q  = null;
+            this.s  = null;
             this.a0 = null;
             this.b0 = null;
+            this.g  = null;
             this.at = null;
             this.bt = null;
             this.h2 = null;
@@ -173,141 +177,197 @@ public class SmithWatermanGotoh {
         }
     }
 
-    public Clone getClone() {
-        return getClone(this.minSim, this.minSentSim, this.minTokens, this.minSent);
+    public List<Clone> verifyAndGroupClone(Clone clone) {
+        return verifyAndGroupClone(clone, this.minSim, this.minSentSim, this.minTokens, this.minSent, this.numWeightLevels, 50);
     }
 
-    public Clone getClone(double minSim, double minSentSim, int minTokens, int minSent)
+    public List<Clone> verifyAndGroupClone(Clone clone, double minSim, double minSentSim, int minTokens, int minSent,
+                                           int numWeightLevels, int overlapPercentage)
     {
-        Clone clone = null;
-
-        int maxsim = 0;
-        int maxi = 0;
-        int maxj = 0;
+        List<Clone> targetClones = new ArrayList<>();
+        List<ClonePair> sourceClonePairs = clone.getClonePairs();
         int minsim = (int)(minSim * 1000);
-        int minsentsim = (int)(minSentSim * 1000);
-        int maxintsimvalue = 0;
 
-        if (this.configured)
-        {
-            for (int i = 1; i < this.m; i++)
-            {
-                for (int j = 1; j < this.n; j++)
+        // verify clone pairs
+        int cp = 0;
+        while (cp < sourceClonePairs.size()) {
+            this.init();
+            ClonePair sourceClonePair = sourceClonePairs.get(cp);
+            if (this.config(sourceClonePair.getFragments().get(0).getCMethod(), sourceClonePair.getFragments().get(1).getCMethod(),
+                            minSim, minSentSim, minTokens, minSent, numWeightLevels)) {
+                CloneResult result = this.isClone();
+                if (result.maxintsimvalue() >= minsim)
                 {
-                    int maximum = 0;
+                    Fragment fragmentA = sourceClonePair.getFragments().get(0);
+                    Fragment fragmentB = sourceClonePair.getFragments().get(1);
+                    fragmentA.initFragment(this.methodA, this.a0[result.maxi()][result.maxj()], result.maxi() - 1);
+                    fragmentB.initFragment(this.methodB, this.b0[result.maxi()][result.maxj()], result.maxj() - 1);
+                    sourceClonePair.setSim(result.maxintsimvalue() / 10);
+                    sourceClonePair.setLevel(Math.min(this.numWeightLevels - 1,
+                        ((sourceClonePair.getSim() - this.minWeight) * this.numWeightLevels / this.weightRange)));
+                    sourceClonePair.setWeight((sourceClonePair.getSim() - this.minWeight) * 100 / this.weightRange);
+                    sourceClonePair.setMaxNumberOfStatements(Math.max(fragmentA.getNumberOfStatements(), fragmentB.getNumberOfStatements()));
+                    sourceClonePair.setCloneType(result.cloneType);
+                    cp++;
+                    this.release();
+                    continue;
+                }
+            }
+            this.release();
+            sourceClonePairs.remove(cp);
+        }
 
-                    this.a0[i][j] = i - 1;
-                    this.b0[i][j] = j - 1;
-
-                    // Vertical gap/deletion
-                    int p1 = this.h[i - 1][j] - this.alpha1 - this.beta1;
-                    int p2 = this.p[i - 1][j] - this.beta1;
-                    this.p[i][j] = Math.max(p1, p2);
-                    if (this.p[i][j] > maximum)
-                    {
-                        if (this.h[i - 1][j] > 0) {
-                            this.a0[i][j] = this.a0[i - 1][j];
-                            this.b0[i][j] = this.b0[i - 1][j];
-                        }
-                        maximum = this.p[i][j];
-                    }
-
-                    // Horizontal gap/deletion
-                    int q1 = this.h[i][j - 1] - this.alpha1 - this.beta1;
-                    int q2 = this.q[i][j - 1] - this.beta1;
-                    this.q[i][j] = Math.max(q1, q2);
-                    if (this.q[i][j] > maximum)
-                    {
-                        if (this.h[i][j-1] > 0) {
-                            this.a0[i][j] = this.a0[i][j - 1];
-                            this.b0[i][j] = this.b0[i][j - 1];
-                        }
-                        maximum = this.q[i][j];
-                    }
-
-                    // Match/Substitution value
-                    int comp_result = this.h[i - 1][j - 1];
-                    if (this.a.get(i - 1).getStatementId() == this.b.get(j - 1).getStatementId())
-                    {
-                        int sent_sim = getSentencesSimilitude(i - 1, j - 1); // returns [0..1000] // * cam_sc_val / 100;
-
-                        if (sent_sim >= minsentsim)
-                            comp_result += sent_sim * this.reward1 / 1000;
-                        else
-                            comp_result -= this.penalty1;
-                    }
-                    else
-                    {
-                        comp_result -= this.penalty1;
-                    }
-                    if (comp_result > maximum)
-                    {
-                        if (this.h[i - 1][j - 1] > 0) {
-                            this.a0[i][j] = this.a0[i - 1][j - 1];
-                            this.b0[i][j] = this.b0[i - 1][j - 1];
-                        }
-                        maximum = comp_result;
-                    }
-
-                    this.h[i][j] = maximum;
-                    this.s[i][j] = simValue(maximum, i, j);
-
-                    this.at[i][j] = this.a.get(i - 1).getTokens().size() + (this.a0[i][j] < i - 1 ? this.at[i - 1][j] : 0);
-                    this.bt[i][j] = this.b.get(j - 1).getTokens().size() + (this.b0[i][j] < j - 1 ? this.bt[i][j - 1] : 0);
-
-                    // Check minimum sentences and similitude parameters
-                    int simnew = intSimValue(maximum, i, j);
-                    if (hasMinSentences(minSent, i, j) && hasMinTokens(minTokens, i, j) && (simnew >= minsim))
-                    {
-                        int minsx = minSentences(maxi, maxj);
-                        int mins = minSentences(i, j);
-                        int mintx = minTokens(maxi, maxj);
-                        int mint = minTokens(i, j);
-
-                        if ((minsx <= mins) && (mintx <= mint) && (simnew >= maxintsimvalue))
-                        {
-                            maxsim = maximum;
-                            maxi = i;
-                            maxj = j;
-                            maxintsimvalue = simnew;
+        // split non-overlapping clone pairs
+        if (sourceClonePairs.size() > 0) {
+            Clone nextClone = new Clone();
+            nextClone.getClonePairs().add(sourceClonePairs.get(0));
+            targetClones.add(nextClone);
+            boolean found = false;
+            for (cp = 1; cp < sourceClonePairs.size(); cp++) {
+                ClonePair sourceClonePair = sourceClonePairs.get(cp);
+                Fragment sf1a = sourceClonePair.getFragments().get(0);
+                Fragment sf1b = sourceClonePair.getFragments().get(1);
+                for (int c = 0; c < targetClones.size(); c++) {
+                    Clone targetClone = targetClones.get(c);
+                    List<ClonePair> targetClonePairs = targetClone.getClonePairs();
+                    for (int p = 0; p < targetClonePairs.size(); p++) {
+                        Fragment tf2a = targetClonePairs.get(p).getFragments().get(0);
+                        Fragment tf2b = targetClonePairs.get(p).getFragments().get(1);
+                        if (sf1a.overlaps(tf2a, overlapPercentage) || sf1a.overlaps(tf2b, overlapPercentage) ||
+                            sf1b.overlaps(tf2a, overlapPercentage) || sf1b.overlaps(tf2b, overlapPercentage)) {
+                            c = targetClones.size();
+                            targetClonePairs.add(sourceClonePair);
+                            found = true;
+                            break;
                         }
                     }
                 }
-            }
-
-            if (maxintsimvalue >= minsim) // (simValue(maxsim, maxi, maxj) >= MinSim)
-            {
-                clone = new Clone();
-                ClonePair clonePair = new ClonePair();
-
-                Fragment fragmentA = FragmentDict.getFragment(this.methodA, this.a0[maxi][maxj], maxi - 1);
-                fragmentA.setClonePair(clonePair);
-                fragmentA.setIdxOnClonePair(0);
-
-                Fragment fragmentB = FragmentDict.getFragment(this.methodB, this.b0[maxi][maxj], maxj - 1);
-                fragmentB.setClonePair(clonePair);
-                fragmentB.setIdxOnClonePair(1);
-
-                clonePair.setClone(clone);
-                clonePair.getFragments().add(fragmentA);
-                clonePair.getFragments().add(fragmentB);
-                clonePair.setSim(maxintsimvalue / 10);
-                clonePair.setLevel(Math.min(this.numWeightLevels - 1,
-                    ((clonePair.getSim() - this.minWeight) * this.numWeightLevels / this.weightRange)));
-                clonePair.setWeight((clonePair.getSim() - this.minWeight) * 100 / this.weightRange);
-                clonePair.setMaxNumberOfStatements(Math.max(fragmentA.getNumberOfStatements(), fragmentB.getNumberOfStatements()));
-                clone.getMethods().add(this.methodA);
-                clone.getMethods().add(this.methodB);
-                clone.getClonePairs().add(clonePair);
-                clone.setNumberOfClonePairs(1);
-                clone.setMaxNumberOfStatements(clonePair.getMaxNumberOfStatements());
-                clone.setMaxWeight(clonePair.getWeight());
-                clone.setMaxSim(clonePair.getSim());
-                clone.setMaxLevel(clonePair.getLevel());
+                if (!found) {
+                    nextClone = new Clone();
+                    nextClone.getClonePairs().add(sourceClonePair);
+                    targetClones.add(nextClone);
+                }
             }
         }
 
-        return clone;
+        return targetClones;
+    }
+
+    private record CloneResult(int maxi, int maxj, int maxintsimvalue, int cloneType) {}
+
+    private CloneResult isClone() {
+        int maxi = 0;
+        int maxj = 0;
+        int minsim = (int)(minSim * 1000);
+        int maxsim = 0;
+        int minsentsim = (int)(minSentSim * 1000);
+        int maxintsimvalue = 0;
+
+        for (int i = 1; i < this.m; i++)
+        {
+            for (int j = 1; j < this.n; j++)
+            {
+                int maximum = 0;
+
+                this.a0[i][j] = i - 1;
+                this.b0[i][j] = j - 1;
+                this.g[i][j] = false; // assume there is no gap in match
+
+                // Vertical gap/deletion
+                int p1 = this.h[i - 1][j] - this.alpha1 - this.beta1;
+                int p2 = this.p[i - 1][j] - this.beta1;
+                this.p[i][j] = Math.max(p1, p2);
+                if (this.p[i][j] > maximum)
+                {
+                    if (this.h[i - 1][j] > 0) {
+                        this.a0[i][j] = this.a0[i - 1][j];
+                        this.b0[i][j] = this.b0[i - 1][j];
+                        this.g[i][j] = true;
+                    }
+                    maximum = this.p[i][j];
+                }
+
+                // Horizontal gap/deletion
+                int q1 = this.h[i][j - 1] - this.alpha1 - this.beta1;
+                int q2 = this.q[i][j - 1] - this.beta1;
+                this.q[i][j] = Math.max(q1, q2);
+                if (this.q[i][j] > maximum)
+                {
+                    if (this.h[i][j-1] > 0) {
+                        this.a0[i][j] = this.a0[i][j - 1];
+                        this.b0[i][j] = this.b0[i][j - 1];
+                        this.g[i][j] = true;
+                    }
+                    maximum = this.q[i][j];
+                }
+
+                // Match/Substitution value
+                int comp_result = this.h[i - 1][j - 1];
+                if (this.a.get(i - 1).getStatementId() == this.b.get(j - 1).getStatementId())
+                {
+                    int sent_sim = getSentencesSimilitude(i - 1, j - 1); // returns [0..1000] // * cam_sc_val / 100;
+
+                    if (sent_sim >= minsentsim)
+                        comp_result += sent_sim * this.reward1 / 1000;
+                    else
+                        comp_result -= this.penalty1;
+                }
+                else
+                {
+                    comp_result -= this.penalty1;
+                }
+                if (comp_result > maximum)
+                {
+                    if (this.h[i - 1][j - 1] > 0) {
+                        this.a0[i][j] = this.a0[i - 1][j - 1];
+                        this.b0[i][j] = this.b0[i - 1][j - 1];
+                        this.g[i][j] = this.g[i-1][j-1];
+                    }
+                    maximum = comp_result;
+                }
+
+                this.h[i][j] = maximum;
+                this.s[i][j] = simValue(maximum, i, j);
+
+                this.at[i][j] = this.a.get(i - 1).getTokens().size() + (this.a0[i][j] < i - 1 ? this.at[i - 1][j] : 0);
+                this.bt[i][j] = this.b.get(j - 1).getTokens().size() + (this.b0[i][j] < j - 1 ? this.bt[i][j - 1] : 0);
+
+                // Check minimum sentences and similitude parameters
+                int simnew = intSimValue(maximum, i, j);
+                if (hasMinSentences(minSent, i, j) && hasMinTokens(minTokens, i, j) && (simnew >= minsim))
+                {
+                    int minsx = minSentences(maxi, maxj);
+                    int mins = minSentences(i, j);
+                    int mintx = minTokens(maxi, maxj);
+                    int mint = minTokens(i, j);
+
+                    if ((minsx <= mins) && (mintx <= mint) && (simnew >= maxintsimvalue))
+                    {
+                        maxsim = maximum;
+                        maxi = i;
+                        maxj = j;
+                        maxintsimvalue = simnew;
+                    }
+                }
+            }
+        }
+        int cloneType = this.g[maxi][maxj] ? 2 : isType1(maxi, maxj) ? 0 : 1;
+        return new CloneResult(maxi, maxj, maxintsimvalue, cloneType);
+    }
+
+    private boolean isType1(int maxi, int maxj) {
+        // if has different number of sentences
+        if (maxi - this.a0[maxi][maxj] != maxj - this.b0[maxi][maxj])
+            // clone is not type 1
+            return false;
+        // check if all sentences are equal
+        for (int i = this.a0[maxi][maxj], j = this.b0[maxi][maxj]; i < maxi; i++, j++) {
+            if (!this.a.get(i).getText().equals(this.b.get(j).getText()))
+                // clone is not type 1
+                return false;
+        }
+        // clone is type 1
+        return true;
     }
 
     private int minSentences(int i, int j)

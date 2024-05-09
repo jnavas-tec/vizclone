@@ -1,24 +1,25 @@
 package cr.ac.tec.vizClone.utils;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
+import com.intellij.psi.JavaTokenType;
+import com.intellij.psi.tree.IElementType;
+
+import java.util.*;
 
 public final class StatementDict {
     private static List<Statement> statementArray = new ArrayList<>();
-    private static Hashtable<String, Integer> statementDict = new Hashtable<>();
+    private static Map<IElementType, Integer> statementDict = new Hashtable<>();
 
     public static void reset() {
-        statementArray = new ArrayList<>();
-        statementDict = new Hashtable<>();
+        statementArray.clear();
+        statementDict.clear();
     }
 
     private static class Statement {
         Integer statementId;
-        String statement;
+        IElementType statement;
     }
 
-    static public Integer getStatementId(String statement) {
+    static public Integer getStatementId(IElementType statement) {
         if (statementDict.get(statement) == null) {
             Statement newStatement = new Statement();
             newStatement.statement = statement;
@@ -30,14 +31,14 @@ public final class StatementDict {
         return statementDict.get(statement);
     }
 
-    static public String getStatement(Integer statementId) {
+    static public IElementType getStatement(Integer statementId) {
         if (statementId >= statementArray.size())
-            return "UNKNOWN";
+            return JavaTokenType.NULL_KEYWORD;
         else
             return statementArray.get(statementId).statement;
     }
 
-    static public Hashtable<String, Integer> dict() {
+    static public Map<IElementType, Integer> dict() {
         return statementDict;
     }
 }

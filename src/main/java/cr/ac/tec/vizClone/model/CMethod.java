@@ -5,7 +5,9 @@ import com.intellij.psi.PsiMethod;
 import lombok.Data;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.TreeSet;
 
 @Data
 public class CMethod {
@@ -19,6 +21,8 @@ public class CMethod {
     private Integer numTokens = 0;
     private CClass cClass;
     private List<CStatement> cStatements = new ArrayList<>();
+    private TreeSet<Integer> shingleSet = new TreeSet<>();
+    private ArrayList<Integer> shingleSignature = new ArrayList<>();
     private PsiMethod psiMethod;
 
     public String toString() {
