@@ -16,7 +16,7 @@ import java.util.List;
 public class ShinglingRecursiveElementVisitor extends JavaRecursiveElementVisitor {
     private boolean visitingMethod = false;
     private StringBuilder methodSourceCode;
-    public static final Integer SHINGLE_SIZE = 9;
+    public static final Integer SHINGLE_SIZE = 27;
     private CloneConfig cloneConfig = new CloneConfig(false, false);
 
     public ShinglingRecursiveElementVisitor(CloneConfig cloneConfig) {

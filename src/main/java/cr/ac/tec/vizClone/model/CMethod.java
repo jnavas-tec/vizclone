@@ -24,6 +24,7 @@ public class CMethod {
     private TreeSet<Integer> shingleSet = new TreeSet<>();
     private ArrayList<Integer> shingleSignature = new ArrayList<>();
     private PsiMethod psiMethod;
+    private int ccScore;
 
     public String toString() {
         return String.format("idx:%d  name:%s", idx, name);

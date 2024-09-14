@@ -3,6 +3,7 @@ package cr.ac.tec.vizClone.utils;
 import com.intellij.openapi.util.text.LineColumn;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.impl.source.tree.JavaElementType;
 import cr.ac.tec.vizClone.model.CClass;
 import cr.ac.tec.vizClone.model.CMethod;
 import cr.ac.tec.vizClone.model.CStatement;
@@ -83,6 +84,16 @@ public class CMethodDict {
         CMethod cMethod = getMethod(methodIdx);
         if (cMethod != null) {
             cMethod.getCStatements().add(cStatement);
+            int size = cMethod.getCStatements().size();
+            if (!JavaElementType.BLOCK_STATEMENT.equals(cStatement.getPsiStatement().getNode().getElementType()) && size > 1) {
+                int leftFrom = cMethod.getCStatements().get(size-2).getFromLineColumn().line;
+                int leftTo = cMethod.getCStatements().get(size-2).getToLineColumn().line;
+                int rightFrom = cMethod.getCStatements().get(size-1).getFromLineColumn().line;
+                int rightTo = cMethod.getCStatements().get(size-1).getToLineColumn().line;
+                if (leftFrom > rightFrom || leftTo > rightTo || leftFrom > rightTo || leftTo > rightFrom) {
+                    boolean WTF = true;
+                }
+            }
         }
     }
 

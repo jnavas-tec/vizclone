@@ -29,7 +29,7 @@ public class ClonePair {
     public void fixClonePair(Clone clone, int idx) {
         this.clone = clone;
         this.idxOnClone = idx;
-        this.maxCognitiveComplexity = Math.max(fragments.get(0).getCognitiveComplexity(), fragments.get(1).getIdxOnClonePair());
+        this.maxCognitiveComplexity = Math.max(fragments.get(0).getCognitiveComplexity(), fragments.get(1).getCognitiveComplexity());
         this.maxNumberOfStatements = Math.max(fragments.get(0).getNumberOfStatements(), fragments.get(1).getNumberOfStatements());
         fragments.get(0).setClonePair(this);
         fragments.get(0).setIdxOnClonePair(0);

@@ -48,5 +48,15 @@
             <keyboard-shortcut keymap="$default"
                                first-keystroke="shift control alt C"/>
         </action>
+        <action id="org.intellij.sdk.action.BCBAction"
+                class="org.intellij.sdk.action.BigCloneBenchAction"
+                text="Big Clone Bench Action"
+                description="Big Clone Bench Action"
+                icon="AllIcons.Actions.ListChanges">
+            <override-text place="MainMenu" text="Big Clone Bench Action"/>
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default"
+                               first-keystroke="shift control alt B"/>
+        </action>
     </actions>
 </idea-plugin>

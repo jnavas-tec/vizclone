@@ -10,12 +10,12 @@ import java.util.Random;
 @Data
 public class CloneGraph {
     private int numClones;
-    private ArrayList<Clone> clones;
-    private int numFragments;
     private int numMethods;
-    private int stripeHeight;
+    private int numFragments;
+    private ArrayList<Clone> clones;
+    private ArrayList<Method> methods;
     private ArrayList<Fragment> fragments;
-    private ArrayList<ClonePair> clonePairs;
+    private int stripeHeight;
     private int minWeight = 90;
     private int maxWeight = 100;
     private int weightRange = 100 - 90;
@@ -28,8 +28,8 @@ public class CloneGraph {
     private boolean selected = false;
     private int selectedClone;
 
-    private boolean hoveredFragments = false;
-    private ArrayList<Integer> hoveredFragmentList = new ArrayList<>();
+    private boolean hoveredMethods = false;
+    private ArrayList<Integer> hoveredMethodList = new ArrayList<>();
 
     private final Random r = new Random();
 
@@ -47,7 +47,6 @@ public class CloneGraph {
     public void populateGraph() {
         this.clones = new ArrayList<Clone>();
         this.fragments = new ArrayList<Fragment>();
-        this.clonePairs = new ArrayList<>();
         for (int c = 0; c < numClones; c++) {
             Clone clone = new Clone();
             this.clones.add(clone);
@@ -117,9 +116,10 @@ public class CloneGraph {
                       int minWeight, int maxWeight, int numWeightLevels) {
         this.clones = clones;
         this.numClones = clones.size();
+        this.methods = methods;
+        this.numMethods = methods.size();
         this.fragments = fragments;
         this.numFragments = fragments.size();
-        this.numMethods = methods.size();
         this.setMinWeight(minWeight);
         this.setMaxWeight(maxWeight);
         this.setNumWeightLevels(numWeightLevels);

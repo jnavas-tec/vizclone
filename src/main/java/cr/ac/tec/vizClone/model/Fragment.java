@@ -22,6 +22,7 @@ public class Fragment {
     private int toOffset;
     private LineColumn fromLineColumn;
     private LineColumn toLineColumn;
+    private static int nextIdx = 0;
 
     public void initFragment(CMethod cMethod, int fromStatement, int toStatement) {
         this.setCPackage(cMethod.getCClass().getCPackage());
@@ -34,6 +35,16 @@ public class Fragment {
         this.setToOffset(cMethod.getCStatements().get(toStatement).getToOffset());
         this.setFromLineColumn(cMethod.getCStatements().get(fromStatement).getFromLineColumn());
         this.setToLineColumn(cMethod.getCStatements().get(toStatement).getToLineColumn());
+        if (this.getFromLineColumn().line > this.getToLineColumn().line) {
+            boolean shouldNotStopHere = false;
+        }
+        int ccScore = 0;
+        for (int s = fromStatement; s <= toStatement; s++) ccScore += cMethod.getCStatements().get(s).getCcScore();
+        this.setCognitiveComplexity(ccScore);
+        this.setKey(new FragmentKey(this.getCMethod().getIdx(),
+            this.getCMethod().getCStatements().get(this.getFromStatement()).getFromOffset(),
+            this.getCMethod().getCStatements().get(this.getToStatement()).getToOffset(),
+            0));
     }
 
     public String toString() {

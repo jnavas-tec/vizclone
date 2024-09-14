@@ -52,18 +52,18 @@ public class SmithWatermanGotoh {
         configured = false;
     }
 
-    public static final double ALPHA1 = 1.0;
-    public static final double BETA1 = 1.0 / 3.0;
-    public static final double REWARD1 = 2.0;
-    public static final double PENALTY1 = 1.0 / 3.0;
-    public static final double ALPHA2 = 1.0;
-    public static final double BETA2 = 1.0 / 3.0;
-    public static final double REWARD2 = 2.0;
-    public static final double PENALTY2 = 1.0 / 3.0;
-    public static final double MIN_SIM = 0.9;
-    public static final double MIN_SENT_SIM = 0.9;
-    public static final int MIN_SENT = 10;
-    public static final int MIN_TOKENS = 50;
+    public static final double ALPHA1 = 1.0 / 1.0; // 1.0
+    public static final double BETA1 = 1.0 / 3.0; // 3.0;
+    public static final double REWARD1 = 2.5; // 2.0;
+    public static final double PENALTY1 = 1.0 / 3.0; // 3.0;
+    public static final double ALPHA2 = 1.0 / 1.0; // 1.0
+    public static final double BETA2 = 1.0 / 3.0; // 3.0;
+    public static final double REWARD2 = 2.5; // 2.0;
+    public static final double PENALTY2 = 1.0 / 3.0; // 3.0;
+    public static final double MIN_SIM = CloneCollector.MIN_SIM;
+    public static final double MIN_SENT_SIM = CloneCollector.MIN_SENT_SIM;
+    public static final int MIN_SENT = CloneCollector.MIN_SENT;
+    public static final int MIN_TOKENS = CloneCollector.MIN_TOKENS;
 
     public void init()
     {
@@ -177,10 +177,43 @@ public class SmithWatermanGotoh {
         }
     }
 
-    public List<Clone> verifyAndGroupClone(Clone clone) {
+    public Clone verifyAndGroupClone(Clone clone) {
         return verifyAndGroupClone(clone, this.minSim, this.minSentSim, this.minTokens, this.minSent, this.numWeightLevels, 50);
     }
 
+    public Clone verifyAndGroupClone(Clone clone, double minSim, double minSentSim, int minTokens, int minSent,
+                                           int numWeightLevels, int overlapPercentage)
+    {
+        int minsim = (int)(minSim * 1000);
+
+        // verify clone pair
+        this.init();
+        ClonePair sourceClonePair = clone.getClonePairs().get(0);
+        if (this.config(sourceClonePair.getFragments().get(0).getCMethod(), sourceClonePair.getFragments().get(1).getCMethod(),
+            minSim, minSentSim, minTokens, minSent, numWeightLevels)) {
+            CloneResult result = this.isClone();
+            if (result.maxintsimvalue() >= minsim)
+            {
+                Fragment fragmentA = sourceClonePair.getFragments().get(0);
+                Fragment fragmentB = sourceClonePair.getFragments().get(1);
+                fragmentA.initFragment(this.methodA, this.a0[result.maxi()][result.maxj()], result.maxi() - 1);
+                fragmentB.initFragment(this.methodB, this.b0[result.maxi()][result.maxj()], result.maxj() - 1);
+                sourceClonePair.setSim(result.maxintsimvalue() / 10);
+                sourceClonePair.setLevel(Math.min(this.numWeightLevels - 1,
+                    ((sourceClonePair.getSim() - this.minWeight) * this.numWeightLevels / this.weightRange)));
+                sourceClonePair.setWeight((sourceClonePair.getSim() - this.minWeight) * 100 / this.weightRange);
+                sourceClonePair.setMaxNumberOfStatements(Math.max(fragmentA.getNumberOfStatements(), fragmentB.getNumberOfStatements()));
+                sourceClonePair.setMaxCognitiveComplexity(Math.max(fragmentA.getCognitiveComplexity(), fragmentB.getCognitiveComplexity()));
+                sourceClonePair.setCloneType(result.cloneType);
+                this.release();
+                return clone;
+            }
+        }
+        this.release();
+        return null;
+    }
+
+    /*
     public List<Clone> verifyAndGroupClone(Clone clone, double minSim, double minSentSim, int minTokens, int minSent,
                                            int numWeightLevels, int overlapPercentage)
     {
@@ -207,6 +240,7 @@ public class SmithWatermanGotoh {
                         ((sourceClonePair.getSim() - this.minWeight) * this.numWeightLevels / this.weightRange)));
                     sourceClonePair.setWeight((sourceClonePair.getSim() - this.minWeight) * 100 / this.weightRange);
                     sourceClonePair.setMaxNumberOfStatements(Math.max(fragmentA.getNumberOfStatements(), fragmentB.getNumberOfStatements()));
+                    sourceClonePair.setMaxCognitiveComplexity(Math.max(fragmentA.getCognitiveComplexity(), fragmentB.getCognitiveComplexity()));
                     sourceClonePair.setCloneType(result.cloneType);
                     cp++;
                     this.release();
@@ -252,6 +286,7 @@ public class SmithWatermanGotoh {
 
         return targetClones;
     }
+    */
 
     private record CloneResult(int maxi, int maxj, int maxintsimvalue, int cloneType) {}
 

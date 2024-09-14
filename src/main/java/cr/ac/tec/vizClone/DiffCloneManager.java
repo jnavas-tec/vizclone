@@ -25,6 +25,8 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.usageView.UsageInfo;
 import cr.ac.tec.vizClone.model.*;
+import cr.ac.tec.vizClone.utils.CMethodDict;
+import groovy.lang.Tuple2;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.Nls;
@@ -34,6 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service(Service.Level.PROJECT)
 public final class DiffCloneManager {
@@ -71,44 +74,120 @@ public final class DiffCloneManager {
     }
 
     private DupInfo getDupInfo(List<Clone> clones) {
-        final PsiFragment[][] duplicates = new PsiFragment[getNumDuplicates(clones)][];
+        // there is one list per clone
+        final PsiFragment[][] duplicates = new PsiFragment[clones.size()][]; // [getNumDuplicates(clones)][];
+        for (int cIdx = 0; cIdx < clones.size(); cIdx++) {
+            Clone clone = clones.get(cIdx);
+            int ccScore = 0;
+            duplicates[cIdx] = new PsiFragment[clone.getMethods().size()];
+            for (int mIdx = 0; mIdx < clone.getMethods().size(); mIdx++) {
+                Method method = clone.getMethods().get(mIdx);
+                List<CStatement> cStatements = CMethodDict.getMethod(method.getCMethodIdx()).getCStatements();
+                List<PsiStatement> psiStatements = cStatements.stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
+                duplicates[cIdx][mIdx] = new TreePsiFragment(null, psiStatements, method.getFromStatement(), method.getToStatement());
+                ccScore = Math.max(ccScore, method.getCcScore());
+            }
+            duplicates[cIdx][0].setCost(ccScore);
+        }
+        /*
+        final PsiFragment[][] duplicates = (PsiFragment[][])clones.stream()
+            .map(clone -> {
+                return clone.getMethods().stream()
+                    .map(method -> {
+                        List<CStatement> cStatements = CMethodDict.getMethod(method.getCMethodIdx()).getCStatements();
+                        List<PsiStatement> psiStatements = cStatements.stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
+                        PsiFragment psiFragment = new TreePsiFragment(null, psiStatements, method.getFromStatement(), method.getToStatement());
+                        return psiFragment;
+                    })
+                    .toArray();
+            })
+            .toArray();
+         */
+        /*
         for (int c = 0, d = 0; c < clones.size(); c++) {
             Clone clone = clones.get(c);
             List<ClonePair> clonePairs = clone.getClonePairs();
             int numClonePairs = clone.getClonePairs().size();
+            Map<Integer, Tuple2<Integer, Integer>> pairMethods = new HashMap<>();
             for (int cp = 0; cp < numClonePairs; d++, cp++) {
                 ClonePair clonePair = clonePairs.get(cp);
+
+                // add or update fragment A
                 Fragment fragmentA = clonePair.getFragments().get(0);
+                if (pairMethods.containsKey(fragmentA.getCMethod().getIdx())) {
+                    Tuple2<Integer, Integer> fragment = pairMethods.get(fragmentA.getCMethod().getIdx());
+                    pairMethods.put(fragmentA.getCMethod().getIdx(),
+                        new Tuple2<>(Math.min((int)fragment.get(0), fragmentA.getFromStatement()),
+                                     Math.max((int)fragment.get(1), fragmentA.getToStatement())));
+                }
+                else {
+                    pairMethods.put(fragmentA.getCMethod().getIdx(),
+                        new Tuple2<>(fragmentA.getFromStatement(), fragmentA.getToStatement()));
+                }
+
+                // add or update fragment B
                 Fragment fragmentB = clonePair.getFragments().get(1);
-                List<PsiStatement> statementsFromA = fragmentA.getCMethod().getCStatements()
-                    .stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
-                List<PsiStatement> statementsFromB = fragmentB.getCMethod().getCStatements()
-                    .stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
-                int fromA = fragmentA.getFromStatement();
-                int toA = fragmentA.getToStatement();
-                int fromB = fragmentB.getFromStatement();
-                int toB = fragmentB.getToStatement();
-                duplicates[d] = new PsiFragment[2];
-                duplicates[d][0] = new TreePsiFragment(null, statementsFromA, fromA, toA);
-                duplicates[d][1] = new TreePsiFragment(null, statementsFromB, fromB, toB);
-                duplicates[d][0].setCost(clonePair.getSim());
+                if (pairMethods.containsKey(fragmentB.getCMethod().getIdx())) {
+                    Tuple2<Integer, Integer> fragment = pairMethods.get(fragmentB.getCMethod().getIdx());
+                    pairMethods.put(fragmentB.getCMethod().getIdx(),
+                        new Tuple2<>(Math.min((int)fragment.get(0), fragmentB.getFromStatement()),
+                                     Math.max((int)fragment.get(1), fragmentB.getToStatement())));
+                }
+                else {
+                    pairMethods.put(fragmentB.getCMethod().getIdx(),
+                        new Tuple2<>(fragmentB.getFromStatement(), fragmentB.getToStatement()));
+                }
+
+
+                //List<PsiStatement> statementsFromA = fragmentA.getCMethod().getCStatements()
+                //    .stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
+                //List<PsiStatement> statementsFromB = fragmentB.getCMethod().getCStatements()
+                //    .stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
+                //int fromA = fragmentA.getFromStatement();
+                //int toA = fragmentA.getToStatement();
+                //int fromB = fragmentB.getFromStatement();
+                //int toB = fragmentB.getToStatement();
+                //duplicates[d] = new PsiFragment[2];
+                //duplicates[d][0] = new TreePsiFragment(null, statementsFromA, fromA, toA);
+                //duplicates[d][1] = new TreePsiFragment(null, statementsFromB, fromB, toB);
+                //duplicates[d][0].setCost(clonePair.getSim());
+
             }
-            /*
-            Fragment fragmentA = clones.get(c).getClonePairs().get(0).getFragments().get(0);
-            Fragment fragmentB = clones.get(c).getClonePairs().get(0).getFragments().get(1);
-            List<PsiStatement> statementsFromA = clones.get(c).getMethods().get(0).getCStatements()
-                    .stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
-            List<PsiStatement> statementsFromB = clones.get(c).getMethods().get(1).getCStatements()
-                    .stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
-            int fromA = fragmentA.getFromStatement();
-            int toA = fragmentA.getToStatement();
-            int fromB = fragmentB.getFromStatement();
-            int toB = fragmentB.getToStatement();
-            duplicates[c] = new PsiFragment[2];
-            duplicates[c][0] = new TreePsiFragment(null, statementsFromA, fromA, toA);
-            duplicates[c][1] = new TreePsiFragment(null, statementsFromB, fromB, toB);
-             */
+
+            duplicates[c] = new PsiFragment[pairMethods.size()];
+            int f = 0;
+            for (Map.Entry<Integer, Tuple2<Integer, Integer>> entry : pairMethods.entrySet()) {
+                List<CStatement> cStatements = CMethodDict.getMethod(entry.getKey()).getCStatements();
+                List<PsiStatement> psiStatements = cStatements.stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
+                int from = entry.getValue().getV1();
+                int to = entry.getValue().getV2();
+                duplicates[c][f] = new TreePsiFragment(null, psiStatements, from, to);
+                int ccCost = IntStream
+                    .range(0, cStatements.size())
+                    .filter(i -> from <= i && i <= to)
+                    .map(i -> cStatements.get(i).getCcScore())
+                    .reduce(0, Integer::sum);
+                duplicates[c][0].setCost(Math.max(ccCost, f == 0 ? 0 : duplicates[c][0].getCost()));
+                f++;
+            }
+
+            //Fragment fragmentA = clones.get(c).getClonePairs().get(0).getFragments().get(0);
+            //Fragment fragmentB = clones.get(c).getClonePairs().get(0).getFragments().get(1);
+            //List<PsiStatement> statementsFromA = clones.get(c).getMethods().get(0).getCStatements()
+            //        .stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
+            //List<PsiStatement> statementsFromB = clones.get(c).getMethods().get(1).getCStatements()
+            //        .stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
+            //int fromA = fragmentA.getFromStatement();
+            //int toA = fragmentA.getToStatement();
+            //int fromB = fragmentB.getFromStatement();
+            //int toB = fragmentB.getToStatement();
+            //duplicates[c] = new PsiFragment[2];
+            //duplicates[c][0] = new TreePsiFragment(null, statementsFromA, fromA, toA);
+            //duplicates[c][1] = new TreePsiFragment(null, statementsFromB, fromB, toB);
+
         }
+        */
+
         Arrays.sort(duplicates, new Comparator<PsiFragment[]>() {
             public int compare(PsiFragment[] f1, PsiFragment[] f2) {
                 return f2[0].getCost() - f1[0].getCost();
@@ -142,7 +221,8 @@ public final class DiffCloneManager {
                 PsiFragment[] occurrences = getFragmentOccurences(pattern);
                 UsageInfo[] infos = new UsageInfo[occurrences.length];
                 for (int i = 0; i < infos.length; i++) {
-                    infos[i] = occurrences[i].getUsageInfo();
+                    if (occurrences[i] != null)
+                        infos[i] = occurrences[i].getUsageInfo();
                 }
                 return infos;
             }
@@ -159,9 +239,11 @@ public final class DiffCloneManager {
                 final Set<PsiFile> files = new HashSet<>();
                 final PsiFragment[] occurrences = getFragmentOccurences(pattern);
                 for (PsiFragment occurrence : occurrences) {
-                    final PsiFile file = occurrence.getFile();
-                    if (file != null) {
-                        files.add(file);
+                    if (occurrence != null) {
+                        final PsiFile file = occurrence.getFile();
+                        if (file != null) {
+                            files.add(file);
+                        }
                     }
                 }
                 final int fileCount = files.size();

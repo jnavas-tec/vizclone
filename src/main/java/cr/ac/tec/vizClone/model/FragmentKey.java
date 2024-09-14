@@ -19,12 +19,12 @@ public class FragmentKey implements Comparable<FragmentKey> {
         return String.format("methodIdx:%d  fromOffset:%d  toOffset:%d  idx:%d", methodIdx, fromOffset, toOffset, idx);
     }
 
-    public FragmentKey(int methodIdx, int fromOffset, int toOffset) {
+    public FragmentKey(int methodIdx, int fromOffset, int toOffset, int fragmentIdx) {
         this.methodIdx = methodIdx;
         //this.methodSignature = methodSignature;
         this.fromOffset = fromOffset;
         this.toOffset = toOffset;
-        this.idx = 0;
+        this.idx = fragmentIdx;
     }
 
     public int compareTo(@NotNull FragmentKey fk) {

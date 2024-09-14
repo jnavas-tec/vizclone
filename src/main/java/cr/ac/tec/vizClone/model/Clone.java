@@ -17,7 +17,7 @@ public class Clone {
     private int maxSim = 0;
     private int maxLevel = 0;
     private int maxCloneType = 0;
-    private ArrayList<Fragment> sortedFragments = null;
+    private ArrayList<Method> methods = new ArrayList<>();
     private boolean sorted = false;
 
     public String toString() {
@@ -71,23 +71,17 @@ public class Clone {
         }
     }
 
-    public ArrayList<Fragment> getSortedFragments() {
-        if (!sorted) {
-            sorted = true;
-            sortedFragments = new ArrayList<Fragment>(clonePairs.size() * 2);
-            for (ClonePair cp : clonePairs) {
-                sortedFragments.add(cp.getFragments().get(0));
-                sortedFragments.add(cp.getFragments().get(1));
-            }
-            Collections.sort(sortedFragments, new Comparator<Fragment>() {
-                @Override
-                public int compare(Fragment o1, Fragment o2) {
-                    if (o1.getIdx() != o2.getIdx())
-                        return o1.getIdx() - o2.getIdx();
-                    return 0;
-                }
-            });
+    public boolean containsMethod(int idx) {
+        for (Method method : this.methods) {
+            if (method.getIdx() == idx) return true;
         }
-        return sortedFragments;
+        return false;
+    }
+
+    public int methodIndex(int idx) {
+        for (int m = 0; m < this.methods.size(); m++) {
+            if (methods.get(m).getIdx() == idx) return m;
+        }
+        return -1;
     }
 }

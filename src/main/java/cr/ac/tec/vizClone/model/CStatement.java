@@ -18,4 +18,5 @@ public class CStatement {
     private List<Integer> tokens = new ArrayList<>();
     private PsiStatement psiStatement;
     private String text = "";
+    private int ccScore;
 }

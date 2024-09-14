@@ -15,6 +15,8 @@ repositories {
 
 dependencies {
     implementation("com.pivovarit:parallel-collectors:2.6.0")
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-csv
+    implementation("org.apache.commons:commons-csv:1.11.0")
 }
 
 // Configure Gradle IntelliJ Plugin
@@ -28,7 +30,7 @@ intellij {
 }
 
 tasks {
-    val runIde by existing(org.jetbrains.intellij.tasks.RunIdeTask::class) { maxHeapSize = "10g" }
+    val runIde by existing(org.jetbrains.intellij.tasks.RunIdeTask::class) { maxHeapSize = "8g" }
 
     // Set the JVM compatibility versions
     withType<JavaCompile> {
