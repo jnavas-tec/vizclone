@@ -344,12 +344,15 @@ public class SmithWatermanGotoh {
 
                     if (sent_sim >= minsentsim)
                         comp_result += sent_sim * this.reward1 / 1000;
-                    else
+                    else {
                         comp_result -= this.penalty1;
+                        this.g[i][j] = true;
+                    }
                 }
                 else
                 {
                     comp_result -= this.penalty1;
+                    this.g[i][j] = true;
                 }
                 if (comp_result > maximum)
                 {
