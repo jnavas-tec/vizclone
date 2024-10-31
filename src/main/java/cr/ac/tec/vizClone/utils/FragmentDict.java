@@ -21,6 +21,7 @@ public class FragmentDict {
         // add fragment
         fragmentArray.add(fragment);
         fk = new FragmentKey(fragment.getCMethod().getIdx(),
+            fragment.getClonePair().getFragments().get(1 - fragment.getIdxOnClonePair()).getIdx(),
             fragment.getCMethod().getCStatements().get(fragment.getFromStatement()).getFromOffset(),
             fragment.getCMethod().getCStatements().get(fragment.getToStatement()).getToOffset(),
             fragment.getIdx());
@@ -123,6 +124,8 @@ public class FragmentDict {
                     cloneMethod.setMaxSim(clonePair.getSim());
                     cloneMethod.setMaxLevel(clonePair.getLevel());
                     cloneMethod.setMaxCloneType(clonePair.getCloneType());
+                    cloneMethod.setFromStatement(fragment.getFromStatement());
+                    cloneMethod.setToStatement(fragment.getToStatement());
                     //cloneMethod.setCcScore(clonePair.getMaxCognitiveComplexity());
                     cloneMethods.add(cloneMethod);
                 }
@@ -146,6 +149,7 @@ public class FragmentDict {
                         method.setCcScore(ccScore);
                         Method globalMethod = methodArray.get(method.getIdx());
                         globalMethod.setCcScore(Math.max(ccScore, globalMethod.getCcScore()));
+                        globalMethod.setMaxWeight(globalMethod.getCcScore());
                         clone.setMaxCognitiveComplexity(Math.max(ccScore, clone.getMaxCognitiveComplexity()));
                     });
             });

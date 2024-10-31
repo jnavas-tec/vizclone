@@ -70,7 +70,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
 
     @Override
     public void visitClass(PsiClass aClass) {
-        if (!visitingClass && !visitingAnonymousClass && !visitingMethod) {
+        if (/*!visitingClass &&*/ !visitingAnonymousClass && !visitingMethod) {
             CClass previousCClass = cClass;
             cClass = CClassDict.getClass(aClass, lineColumns);
             boolean previousVisitingClass = visitingClass;
@@ -85,23 +85,28 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     @Override
     public void visitMethod(PsiMethod method) {
         if (this.visitingClass && !this.visitingAnonymousClass && !this.visitingMethod) {
+            // TODO: Add method even if they have the same signature
             this.cMethod = CMethodDict.getMethod(method, this.lineColumns);
-            this.visitingMethod = true;
-            this.methodSourceCode = new StringBuilder();
-            ccNestingLevel = 0;
-            ccScore = 0;
-            super.visitMethod(method);
-            // add method if it has minimun number of sentences
-            if (this.cMethod.getCStatements().size() < this.minSentences || this.cMethod.getNumTokens() < this.minTokens) {
-                CMethodDict.removeMethod(this.cMethod);
+            if (this.cMethod.getCStatements().size() == 0) {
+                this.visitingMethod = true;
+                this.methodSourceCode = new StringBuilder();
+                ccNestingLevel = 0;
+                ccScore = 0;
+                super.visitMethod(method);
+                // add method if it has minimun number of sentences
+                if (this.cMethod.getCStatements().size() < this.minSentences || this.cMethod.getNumTokens() < this.minTokens) {
+                    CMethodDict.removeMethod(this.cMethod);
+                }
+                else {
+                    cMethod.setCcScore(ccScore);
+                    CClassDict.addMethod(cClass.getIdx(), cMethod);
+                    this.collectMethodShingles();
+                }
+                this.visitingMethod = false;
+                this.cMethod = null;
             }
-            else {
-                cMethod.setCcScore(ccScore);
-                CClassDict.addMethod(cClass.getIdx(), cMethod);
-                this.collectMethodShingles();
-            }
-            this.visitingMethod = false;
-            this.cMethod = null;
+            else
+                super.visitMethod(method);
         }
         else
             super.visitMethod(method);

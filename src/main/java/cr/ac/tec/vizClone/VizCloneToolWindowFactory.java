@@ -26,8 +26,7 @@ import java.awt.geom.GeneralPath;
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
 
-import static javax.swing.SwingUtilities.isLeftMouseButton;
-import static javax.swing.SwingUtilities.isRightMouseButton;
+import static javax.swing.SwingUtilities.*;
 
 @Service(Service.Level.PROJECT)
 public final class VizCloneToolWindowFactory implements DumbAware {
@@ -505,6 +504,11 @@ public final class VizCloneToolWindowFactory implements DumbAware {
                                 .showDiffClones(collector.getClones().subList(clone, clone + 1));
                         }
                     }
+                    else if (isMiddleMouseButton(e)) {
+                        graph.switchSortOrder();
+                        repaint();
+                        clonePanel.repaint();
+                    }
                 }
             });
             this.addMouseMotionListener(new MouseAdapter() {
@@ -923,11 +927,12 @@ public final class VizCloneToolWindowFactory implements DumbAware {
         private static void drawHighlightedCloneLabel(int highlightedClone, int weight, int barX, int barY, int barWidth) {
             Clone clone = graph.getClones().get(highlightedClone);
             // Clone label
-            String label = String.format("Clone #%d %d%% (Type %d - CC:%d)",
+            String label = String.format("Clone #%d %d%% (Type %d - CC:%d - #frag:%d)",
                 highlightedClone,
                 clone.getMaxSim(),
                 clone.getMaxCloneType() + 1,
-                clone.getMaxCognitiveComplexity());
+                clone.getMaxCognitiveComplexity(),
+                clone.getMethods().size());
 
             FontMetrics fm = g2.getFontMetrics();
             int labelWidth = fm.stringWidth(label);
@@ -937,6 +942,10 @@ public final class VizCloneToolWindowFactory implements DumbAware {
             int y1 = barY - VERTICAL_PAD - lineHeight;
             int rw = labelWidth + 2 * HORIZONTAL_PAD;
             int rh = lineHeight;
+
+            // fix horizontal label position
+            x1 = Math.max(x1, zoomedRect.x);
+            x1 = Math.min(x1, zoomedRect.x + zoomedRect.width - labelWidth - HORIZONTAL_PAD);
 
             // draw label background
             g2.setColor(g2.getBackground());

@@ -11,12 +11,13 @@ import java.util.Objects;
 @Data
 public class FragmentKey implements Comparable<FragmentKey> {
     private int methodIdx;
+    private int pairFragmentIdx;
     private int fromOffset;
     private int toOffset;
     private int idx;
 
     public String toString() {
-        return String.format("methodIdx:%d  fromOffset:%d  toOffset:%d  idx:%d", methodIdx, fromOffset, toOffset, idx);
+        return String.format("methodIdx:%d  pairFragmentIdx:%d  fromOffset:%d  toOffset:%d  idx:%d", methodIdx, pairFragmentIdx, toOffset, idx);
     }
 
     public FragmentKey(int methodIdx, int fromOffset, int toOffset, int fragmentIdx) {
@@ -27,11 +28,21 @@ public class FragmentKey implements Comparable<FragmentKey> {
         this.idx = fragmentIdx;
     }
 
+    public FragmentKey(int methodIdx, int pairFragmentIdx, int fromOffset, int toOffset, int fragmentIdx) {
+        this.methodIdx = methodIdx;
+        //this.methodSignature = methodSignature;
+        this.pairFragmentIdx = pairFragmentIdx;
+        this.fromOffset = fromOffset;
+        this.toOffset = toOffset;
+        this.idx = fragmentIdx;
+    }
+
     public int compareTo(@NotNull FragmentKey fk) {
         // self check
         if (this == fk) return 0;
         // fields comparison
         if (methodIdx != fk.methodIdx) return methodIdx - fk.methodIdx;
+        if (pairFragmentIdx != fk.pairFragmentIdx) return pairFragmentIdx - fk.pairFragmentIdx;
         if (fromOffset != fk.fromOffset) return fromOffset - fk.fromOffset;
         if (toOffset != fk.toOffset) return toOffset - fk.toOffset;
         if (idx != fk.idx) return idx - fk.idx;

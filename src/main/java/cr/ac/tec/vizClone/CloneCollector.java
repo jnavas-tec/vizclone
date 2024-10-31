@@ -8,18 +8,17 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiUtilCore;
 import cr.ac.tec.vizClone.model.*;
 import cr.ac.tec.vizClone.utils.*;
-import groovy.lang.Tuple2;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Data
@@ -106,19 +105,31 @@ public class CloneCollector {
     }
 
     private static List<VirtualFile> collectJavaClassesInFolder(@NotNull VirtualFile vFolder) {
-        VirtualFile[] childrenVFiles = vFolder.getChildren();
-        List<VirtualFile> javaVFilesList = Arrays.stream(childrenVFiles)
-            .filter(vf -> !vf.isDirectory() && vf.getExtension() != null && vf.getExtension().equals("java"))
-            .collect(Collectors.toList());
-        javaVFilesList.addAll(
-            Arrays.stream(childrenVFiles)
-                .filter(vf -> vf.isDirectory())
-                .map(vFile -> CloneCollector.collectJavaClassesInFolder(vFile))
-                .collect(Collectors.toList())
-                .stream()
-                .flatMap(l -> l.stream())
-                .collect(Collectors.toList()));
+        List<VirtualFile> javaVFilesList = new ArrayList<>();
+        if (filterTest(vFolder)) {
+            VirtualFile[] childrenVFiles = vFolder.getChildren();
+            javaVFilesList = Arrays.stream(childrenVFiles)
+                .filter(vf -> !vf.isDirectory() && vf.getExtension() != null && vf.getExtension().equals("java") && !vf.getName().endsWith("Test.java"))
+                .collect(Collectors.toList());
+            javaVFilesList.addAll(
+                Arrays.stream(childrenVFiles)
+                    .filter(vf -> vf.isDirectory() && filterTest(vf))
+                    .map(vFile -> CloneCollector.collectJavaClassesInFolder(vFile))
+                    .collect(Collectors.toList())
+                    .stream()
+                    .flatMap(l -> l.stream())
+                    .collect(Collectors.toList()));
+        }
         return javaVFilesList;
+    }
+
+    private static boolean filterTest(VirtualFile vf) {
+        String filters[] = {"test","tests","testData"};
+        for (int i = 0; i < filters.length; i++) {
+            if (vf.getPath().endsWith("/"+filters[i]) || vf.getPath().contains("/"+filters[i]+"/"))
+                return false;
+        }
+        return true;
     }
 
     private static List<List<VirtualFile>> collectJavaClassesInSubfolders(@NotNull VirtualFile vFolder) {
@@ -201,8 +212,9 @@ public class CloneCollector {
                 printLocalDateTime(String.format("Collecting minhash signatures for %d methods...", CMethodDict.list().size()));
                 ShingleDict.setMinhashSignaturesInFiles(CMethodDict.list(), ShingleDict.b, ShingleDict.r);
 
-                printLocalDateTime("Collecting LSH for minhash signatures and generating similar pairs...");
                 List<CMethod> methods = CMethodDict.list();
+
+                printLocalDateTime("Collecting LSH for minhash signatures and generating similar pairs...");
                 List<Clone> similarPairs = ShingleDict.lshMinhashSignaturesFromFiles(methods, ShingleDict.b, ShingleDict.r);
 
                 printLocalDateTime(String.format("Collecting clones from %d similar pairs...", similarPairs.size()));
@@ -265,6 +277,11 @@ public class CloneCollector {
 
         printLocalDateTime("Collecting LSH for minhash signatures and generating similar pairs...");
         List<CMethod> methods = CMethodDict.list();
+        //List<CMethod> methods = CMethodDict.list()
+        //    .stream()
+        //    .filter(method -> method.getCClass().getSignature().equals("com.intellij.tasks.mantis.model.MantisConnectBindingStub"))
+        //    .collect(Collectors.toList());
+
         //List<Clone> similarPairs = ShingleDict.lshMinhashSignatures(methods, ShingleDict.b, ShingleDict.r);
         List<Clone> similarPairs = ShingleDict.lshMinhashSignaturesFromFiles(methods, ShingleDict.b, ShingleDict.r);
 
@@ -282,10 +299,59 @@ public class CloneCollector {
         this.mergeClonePairs(OVERLAP_PERCENTAGE);
         printLocalDateTime(String.format("Fixing %d collected clones...", this.clones.size()));
         for (int c = 0; c < this.clones.size(); c++) this.clones.get(c).fixClone(c);
-        this.calculateCCWeight();
         printLocalDateTime(String.format("Collecting fragments for %d clones...", this.clones.size()));
         FragmentDict.collectFragments(this.clones, this.fragments, this.methods);
+        this.calculateCCWeight();
+        this.sortClones(this.clones);
         printLocalDateTime("Finished processing.\n");
+        this.collectBiggest(project, 5, 15);
+    }
+
+    private void collectBiggest(Project project, int maxFragments, int maxCC) {
+        try {
+            FileWriter fileWriter = new FileWriter("/Users/jnavas/Downloads/" + project.getName() + ".csv");
+            PrintWriter printWriter = new PrintWriter(fileWriter);
+            AtomicInteger numFragClones = new AtomicInteger();
+            AtomicInteger numCcClones = new AtomicInteger();
+            printWriter.printf("CloneIdx,#Fragments,Max CC,Class,Method,CC\n");
+            this.clones.stream()
+                .forEach(clone -> {
+                    if (clone.getMethods().size() > maxFragments || clone.getMaxCognitiveComplexity() > maxCC) {
+                        for (Method method : clone.getMethods()) {
+                            printWriter.printf("%d,%d,%d,\"%s\",\"%s\",%d\n",
+                                clone.getIdx(),
+                                clone.getMethods().size(),
+                                clone.getMaxCognitiveComplexity(),
+                                CMethodDict.getMethod(method.getCMethodIdx()).getCClass().getSignature(),
+                                CMethodDict.getMethod(method.getCMethodIdx()).getName(),
+                                method.getCcScore());
+                        }
+                    }
+                    if (clone.getMethods().size() > maxFragments) numFragClones.getAndIncrement();
+                    if (clone.getMaxCognitiveComplexity() > maxCC) {
+                        numCcClones.getAndIncrement();
+                    }
+                });
+            System.out.println(String.format("#Clones with CC > %d: %d", maxCC, numCcClones.get()));
+            System.out.println(String.format("#Clones with #f > %d: %d", maxFragments, numFragClones.get()));
+            printWriter.close();
+        }
+        catch (IOException ioe) {
+            System.out.println("Falló escribiendo al archivo .csv");
+        }
+    }
+
+    private void sortClones(List<Clone> clones) {
+        Collections.sort(clones, new Comparator<Clone>() {
+            public int compare(Clone c1, Clone c2) {
+                int retval = c2.getMethods().size() - c1.getMethods().size();
+                if (retval == 0) retval = c2.getMaxCognitiveComplexity() - c1.getMaxCognitiveComplexity();
+                return retval;
+            }
+        });
+        for (int c = 0; c < clones.size(); c++) {
+            clones.get(c).setIdx(c);
+        }
     }
 
     private void calculateCCWeight() {
@@ -366,6 +432,20 @@ public class CloneCollector {
         cp.setClone(toClone);
     }
 
+    private void moveClonePairs(Clone fromClone, Clone toClone) {
+        int fromSize = fromClone.getNumberOfClonePairs();
+        int toSize = toClone.getNumberOfClonePairs();
+        toClone.getClonePairs().addAll(fromClone.getClonePairs());
+        fromClone.getClonePairs().clear();
+        fromClone.setNumberOfClonePairs(0);
+        toClone.setNumberOfClonePairs(fromSize + toSize);
+        List<ClonePair> pairs = toClone.getClonePairs();
+        for (int i = toSize; i < fromSize + toSize; i++) {
+            pairs.get(i).setIdxOnClone(i);
+            pairs.get(i).setClone(toClone);
+        }
+    }
+
     // Pre: fragment list must be sorted by FragmentKey(method, fromOffset, toOffset)
     // Merge:
     //     c1 -> { cp1 -> f1(A) - f2(B) }
@@ -388,7 +468,10 @@ public class CloneCollector {
                     Clone c1 = f1.getClone();
                     Clone c2 = f3.getClone();
                     ClonePair cp2 = f3.getClonePair();
-                    this.moveClonePair(cp2, c2, c1);
+                    this.moveClonePairs(c1, c2);
+                    // clonePairs moved from c1 to c2
+
+                    //this.moveClonePair(cp2, c2, c1);
                     // fragment A was moved from c2 to c1
 
                     // f2 -> fragment B from c1 and cp1
@@ -398,9 +481,12 @@ public class CloneCollector {
                     // locate third mergeable fragment
                     ClonePair cp3 = findMergeableClonePair(fragmentsMap, f2, f4, overlapPercentage);
                     if (cp3 != null) {
+                        // move clonePairs from c2 to c3
+                        this.moveClonePairs(c2, cp3.getClone());
+
                         // fragments B and C from c3 and cp3
                         // move third clone pair to first clone and fix references
-                        this.moveClonePair(cp3, cp3.getClone(), c1);
+                        //this.moveClonePair(cp3, cp3.getClone(), c1);
                     }
                 }
             }
@@ -420,13 +506,24 @@ public class CloneCollector {
     private ClonePair findMergeableClonePair(Hashtable<Integer, Integer> fragmentsMap,
                                              Fragment f2, Fragment f4, int overlapPercentage) {
         int numFrags = fragments.size();
-        for (int f = fragmentsMap.get(f2.getCMethod().getIdx()); f < numFrags && f2.fromSameMethod(fragments.get(f)); f++) {
+        Fragment fmin = f2.getIdx() < f4.getIdx() ? f2 : f4;
+        Fragment fmax = f2.getIdx() < f4.getIdx() ? f4 : f2;
+        for (int f = fragmentsMap.get(fmin.getCMethod().getIdx()); f < numFrags && fmin.fromSameMethod(fragments.get(f)); f++) {
             ClonePair cp3 = fragments.get(f).getClonePair();
-            int f5Side = f2.fromSameMethod(cp3.getFragments().get(0)) ? 0 : 1;
+            int f5Side = fmin.fromSameMethod(cp3.getFragments().get(0)) ? 0 : 1;
             int f6Side = 1 - f5Side;
             Fragment f5 = cp3.getFragments().get(f5Side);
             Fragment f6 = cp3.getFragments().get(f6Side);
-            if (f2.canBeMerged(f5, overlapPercentage) || f4.canBeMerged(f6, overlapPercentage))
+            if (fmin.canBeMerged(f5, overlapPercentage) || fmax.canBeMerged(f6, overlapPercentage))
+                return cp3;
+        }
+        for (int f = fragmentsMap.get(fmax.getCMethod().getIdx()); f < numFrags && fmax.fromSameMethod(fragments.get(f)); f++) {
+            ClonePair cp3 = fragments.get(f).getClonePair();
+            int f5Side = fmax.fromSameMethod(cp3.getFragments().get(0)) ? 0 : 1;
+            int f6Side = 1 - f5Side;
+            Fragment f5 = cp3.getFragments().get(f5Side);
+            Fragment f6 = cp3.getFragments().get(f6Side);
+            if (fmax.canBeMerged(f5, overlapPercentage) || fmin.canBeMerged(f6, overlapPercentage))
                 return cp3;
         }
         return null;

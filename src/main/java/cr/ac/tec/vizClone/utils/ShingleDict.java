@@ -87,9 +87,9 @@ public class ShingleDict {
 
     /* n = 1000, b = 100, r = 10 => 63% */
     /* n = 1000, b = 40,  r = 25 => 86% */
-    public static final Integer NUM_MIN_HASHES = 1000; // 300; //200;//300;//250;//200;
-    public static final Integer b = 50; // 25; //5;//25;//25;//5;
-    public static final Integer r = 20; // 12; //40;//12;//10;//40;
+    public static final Integer NUM_MIN_HASHES = 420; // 300; //200;//300;//250;//200;
+    public static final Integer b = 28; // 25; //5;//25;//25;//5;
+    public static final Integer r = 15; // 12; //40;//12;//10;//40;
 
     static public void reset() {
         shingleDict.clear();
@@ -289,7 +289,7 @@ public class ShingleDict {
                         }
                         return tuple2List;
                     })
-                    .collect(Collectors.toList());
+                    .toList();
                 pairLists.stream().forEach(pairList::addAll);
                 //System.out.print("/");
             }

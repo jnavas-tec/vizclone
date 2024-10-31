@@ -19,8 +19,10 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiStatement;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.usageView.UsageInfo;
@@ -221,8 +223,14 @@ public final class DiffCloneManager {
                 PsiFragment[] occurrences = getFragmentOccurences(pattern);
                 UsageInfo[] infos = new UsageInfo[occurrences.length];
                 for (int i = 0; i < infos.length; i++) {
-                    if (occurrences[i] != null)
-                        infos[i] = occurrences[i].getUsageInfo();
+                    if (occurrences[i] != null) {
+                        try {
+                            infos[i] = occurrences[i].getUsageInfo();
+                        }
+                        catch (Exception e) {
+                            infos[i] = null;
+                        }
+                    }
                 }
                 return infos;
             }

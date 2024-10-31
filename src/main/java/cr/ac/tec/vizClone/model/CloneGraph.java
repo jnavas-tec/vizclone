@@ -3,9 +3,7 @@ package cr.ac.tec.vizClone.model;
 import com.intellij.openapi.util.text.LineColumn;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Random;
+import java.util.*;
 
 @Data
 public class CloneGraph {
@@ -24,6 +22,7 @@ public class CloneGraph {
     //private static final int MAX_CC_LEVELS = 4;
     //private static final int MAX_FRAGMENTS = 5;
     //public static final int MAX_WEIGHT = MAX_CC_LEVELS * MAX_FRAGMENTS;
+    private int sortKey = 0;
 
     private boolean selected = false;
     private int selectedClone;
@@ -138,7 +137,8 @@ public class CloneGraph {
     public int getScaledWeight(int weight, int maxHeight) {
         int scaledMaxHeight = maxHeight * 4 / 5;
         int scaledOffset = maxHeight / 5;
-        int scaledWeight = weight * scaledMaxHeight / 100 + scaledOffset;
+        int normalizedWeight = (weight - this.minWeight) * 100 / this.maxWeight;
+        int scaledWeight = normalizedWeight * scaledMaxHeight / 100 + scaledOffset;
         return scaledWeight;
     }
 
@@ -153,5 +153,36 @@ public class CloneGraph {
 
     private int getNextRandom(int low, int high) {
         return r.nextInt(high - low) + low;
+    }
+
+    public void switchSortOrder() {
+        this.sortKey = 1 - this.sortKey;
+        if (this.sortKey == 0)
+            this.sortClonesByNumFragAndCC();
+        else
+            this.sortClonesByCCAndNumFrag();
+        for (int c = 0; c < this.clones.size(); c++) {
+            this.clones.get(c).setIdx(c);
+        }
+    }
+
+    private void sortClonesByNumFragAndCC() {
+        Collections.sort(this.clones, new Comparator<Clone>() {
+            public int compare(Clone c1, Clone c2) {
+                int retval = c2.getMethods().size() - c1.getMethods().size();
+                if (retval == 0) retval = c2.getMaxCognitiveComplexity() - c1.getMaxCognitiveComplexity();
+                return retval;
+            }
+        });
+    }
+
+    private void sortClonesByCCAndNumFrag() {
+        Collections.sort(this.clones, new Comparator<Clone>() {
+            public int compare(Clone c1, Clone c2) {
+                int retval = c2.getMaxCognitiveComplexity() - c1.getMaxCognitiveComplexity();
+                if (retval == 0) retval = c2.getMethods().size() - c1.getMethods().size();
+                return retval;
+            }
+        });
     }
 }

@@ -52,13 +52,13 @@ public class SmithWatermanGotoh {
         configured = false;
     }
 
-    public static final double ALPHA1 = 1.0 / 1.0; // 1.0
+    public static final double ALPHA1 = 1.0 / 1.0; // 3.0; // 1.0
     public static final double BETA1 = 1.0 / 3.0; // 3.0;
-    public static final double REWARD1 = 2.5; // 2.0;
+    public static final double REWARD1 = 2.0; //3.0; // 2.0;
     public static final double PENALTY1 = 1.0 / 3.0; // 3.0;
-    public static final double ALPHA2 = 1.0 / 1.0; // 1.0
+    public static final double ALPHA2 = 1.0 / 1.0; // 3.0; // 1.0
     public static final double BETA2 = 1.0 / 3.0; // 3.0;
-    public static final double REWARD2 = 2.5; // 2.0;
+    public static final double REWARD2 = 2.0; // 3.0; // 2.0;
     public static final double PENALTY2 = 1.0 / 3.0; // 3.0;
     public static final double MIN_SIM = CloneCollector.MIN_SIM;
     public static final double MIN_SENT_SIM = CloneCollector.MIN_SENT_SIM;
@@ -191,6 +191,12 @@ public class SmithWatermanGotoh {
         ClonePair sourceClonePair = clone.getClonePairs().get(0);
         if (this.config(sourceClonePair.getFragments().get(0).getCMethod(), sourceClonePair.getFragments().get(1).getCMethod(),
             minSim, minSentSim, minTokens, minSent, numWeightLevels)) {
+            if ((sourceClonePair.getFragments().get(0).getCMethod().getCClass().getName().equals("_TomlLexer") &&
+                sourceClonePair.getFragments().get(0).getCMethod().getName().equals("advance")) ||
+                (sourceClonePair.getFragments().get(1).getCMethod().getCClass().getName().equals("_TomlLexer") &&
+                    sourceClonePair.getFragments().get(1).getCMethod().getName().equals("advance"))) {
+                boolean stopHere = true;
+            }
             CloneResult result = this.isClone();
             if (result.maxintsimvalue() >= minsim)
             {
@@ -198,6 +204,8 @@ public class SmithWatermanGotoh {
                 Fragment fragmentB = sourceClonePair.getFragments().get(1);
                 fragmentA.initFragment(this.methodA, this.a0[result.maxi()][result.maxj()], result.maxi() - 1);
                 fragmentB.initFragment(this.methodB, this.b0[result.maxi()][result.maxj()], result.maxj() - 1);
+                fragmentA.getKey().setPairFragmentIdx(fragmentB.getIdx());
+                fragmentB.getKey().setPairFragmentIdx(fragmentA.getIdx());
                 sourceClonePair.setSim(result.maxintsimvalue() / 10);
                 sourceClonePair.setLevel(Math.min(this.numWeightLevels - 1,
                     ((sourceClonePair.getSim() - this.minWeight) * this.numWeightLevels / this.weightRange)));
@@ -379,7 +387,7 @@ public class SmithWatermanGotoh {
                     int mintx = minTokens(maxi, maxj);
                     int mint = minTokens(i, j);
 
-                    if ((minsx <= mins) && (mintx <= mint) && (simnew >= maxintsimvalue))
+                    if (((minsx <= mins) && (mintx <= mint)) || (simnew >= maxintsimvalue))
                     {
                         maxsim = maximum;
                         maxi = i;
@@ -390,7 +398,7 @@ public class SmithWatermanGotoh {
             }
         }
         int cloneType = this.g[maxi][maxj] ? 2 : isType1(maxi, maxj) ? 0 : 1;
-        return new CloneResult(maxi, maxj, maxintsimvalue, cloneType);
+        return new CloneResult(maxi, maxj,  maxintsimvalue, cloneType);
     }
 
     private boolean isType1(int maxi, int maxj) {
