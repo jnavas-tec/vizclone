@@ -20,9 +20,18 @@ public class CClassDict {
         classDict.clear();
     }
 
-    static public Integer getClassIdx(PsiClass psiClass, List<LineColumn> lineColumns) {
-        String qualifiedName = psiClass.getQualifiedName();
-        if (qualifiedName == null) qualifiedName = psiClass.getName();
+    static private String getFolder(String folderPath) {
+        return folderPath.substring(folderPath.indexOf("/src/") + 5).replaceAll("/", ".");
+    }
+
+    static public Integer getClassIdx(PsiClass psiClass, List<LineColumn> lineColumns, boolean folderAsPackage) {
+        String qualifiedName = "";
+        if (folderAsPackage)
+            qualifiedName = getFolder(psiClass.getContainingFile().getContainingDirectory().toString()) + "." + psiClass.getName();
+        else {
+            qualifiedName = psiClass.getQualifiedName();
+            if (qualifiedName == null) qualifiedName = psiClass.getName();
+        }
         Integer index = classDict.get(qualifiedName);
         if (index == null) {
             // retrieve package
@@ -48,8 +57,8 @@ public class CClassDict {
         return index;
     }
 
-    static public CClass getClass(PsiClass psiClass, List<LineColumn> lineColumns) {
-        return classArray.get(getClassIdx(psiClass, lineColumns));
+    static public CClass getClass(PsiClass psiClass, List<LineColumn> lineColumns, boolean folderAsPackage) {
+        return classArray.get(getClassIdx(psiClass, lineColumns, folderAsPackage));
     }
 
     static public CClass getClass(Integer classIdx) {

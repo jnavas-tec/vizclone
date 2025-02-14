@@ -89,7 +89,7 @@ public class CloneCollector {
         printLocalDateTime(String.format("Collecting methods from %d Java Psi files...", javaPsiFilesList.size()));
         javaPsiFilesList.stream()//.limit(30000)
             .forEach(javaPsiFile -> javaPsiFile.accept(
-                new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS, cloneConfig))
+                new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS, cloneConfig, false))
             );
 
         printLocalDateTime(String.format("Collecting minhash signatures for %d methods...", CMethodDict.list().size()));
@@ -206,7 +206,7 @@ public class CloneCollector {
                 printLocalDateTime(String.format("Collecting methods from %d Java Psi files...", javaPsiFilesList.size()));
                 javaPsiFilesList.stream()//.limit(30000)
                     .forEach(javaPsiFile -> javaPsiFile.accept(
-                        new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS, cloneConfig))
+                        new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS, cloneConfig, true))
                     );
 
                 printLocalDateTime(String.format("Collecting minhash signatures for %d methods...", CMethodDict.list().size()));
@@ -437,6 +437,7 @@ public class CloneCollector {
         int toSize = toClone.getNumberOfClonePairs();
         toClone.getClonePairs().addAll(fromClone.getClonePairs());
         fromClone.getClonePairs().clear();
+        fromClone.setClonePairs(new ArrayList<>());
         fromClone.setNumberOfClonePairs(0);
         toClone.setNumberOfClonePairs(fromSize + toSize);
         List<ClonePair> pairs = toClone.getClonePairs();

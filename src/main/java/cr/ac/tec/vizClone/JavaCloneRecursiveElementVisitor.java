@@ -47,11 +47,14 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     private int ccNestingLevel = 0;
     private int ccScore = 0;
 
-    public JavaCloneRecursiveElementVisitor(CloneCollector cloneCollector, Integer minSentences, Integer minTokens, CloneConfig cloneConfig) {
+    private boolean folderAsPackage = false;
+
+    public JavaCloneRecursiveElementVisitor(CloneCollector cloneCollector, Integer minSentences, Integer minTokens, CloneConfig cloneConfig, boolean folderAsPackage) {
         this.minSentences = minSentences;
         this.minTokens = minTokens;
         this.cloneCollector = cloneCollector;
         if (cloneConfig != null) this.cloneConfig = cloneConfig;
+        this.folderAsPackage = folderAsPackage;
     }
 
     @Override
@@ -72,7 +75,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     public void visitClass(PsiClass aClass) {
         if (/*!visitingClass &&*/ !visitingAnonymousClass && !visitingMethod) {
             CClass previousCClass = cClass;
-            cClass = CClassDict.getClass(aClass, lineColumns);
+            cClass = CClassDict.getClass(aClass, lineColumns, folderAsPackage);
             boolean previousVisitingClass = visitingClass;
             visitingClass = true;
             super.visitClass(aClass);
@@ -86,7 +89,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     public void visitMethod(PsiMethod method) {
         if (this.visitingClass && !this.visitingAnonymousClass && !this.visitingMethod) {
             // TODO: Add method even if they have the same signature
-            this.cMethod = CMethodDict.getMethod(method, this.lineColumns);
+            this.cMethod = CMethodDict.getMethod(method, this.lineColumns, this.cClass, folderAsPackage);
             if (this.cMethod.getCStatements().size() == 0) {
                 this.visitingMethod = true;
                 this.methodSourceCode = new StringBuilder();

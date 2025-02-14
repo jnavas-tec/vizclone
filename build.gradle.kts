@@ -30,7 +30,7 @@ intellij {
 }
 
 tasks {
-    val runIde by existing(org.jetbrains.intellij.tasks.RunIdeTask::class) { maxHeapSize = "8g" }
+    val runIde by existing(org.jetbrains.intellij.tasks.RunIdeTask::class) { maxHeapSize = "12g" }
 
     // Set the JVM compatibility versions
     withType<JavaCompile> {

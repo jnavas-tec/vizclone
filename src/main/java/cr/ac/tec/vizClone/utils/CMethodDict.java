@@ -19,22 +19,30 @@ public class CMethodDict {
         methodDict.clear();
     }
 
-    static public Integer getMethodIdx(PsiMethod psiMethod, List<LineColumn> lineColumns) {
-        PsiClass containingClass = psiMethod.getContainingClass();
-        String qualifiedName = containingClass.getQualifiedName();
-        if (qualifiedName == null) qualifiedName = containingClass.getName();
-        String methodSignature = (containingClass == null ? "" : qualifiedName + ".")
-            + psiMethod.getName() + psiMethod.getParameterList().getText();
+    static public Integer getMethodIdx(PsiMethod psiMethod, List<LineColumn> lineColumns, CClass cClass, boolean folderAsPackage) {
+        String methodSignature = "";
+        CClass cClazz = null;
+        if (folderAsPackage) {
+            cClazz = cClass;
+            methodSignature = cClazz.getSignature() + "." + psiMethod.getName() + psiMethod.getParameterList().getText();
+        }
+        else {
+            PsiClass containingClass = psiMethod.getContainingClass();
+            String qualifiedName = containingClass.getQualifiedName();
+            if (qualifiedName == null) qualifiedName = containingClass.getName();
+            methodSignature = (containingClass == null ? "" : qualifiedName + ".")
+                + psiMethod.getName() + psiMethod.getParameterList().getText();
+            // retrieve class
+            cClazz = CClassDict.getClass(psiMethod.getContainingClass(), lineColumns, false);
+        }
         Integer index = methodDict.get(methodSignature);
         if (index == null) {
-            // retrieve class
-            CClass cClass = CClassDict.getClass(psiMethod.getContainingClass(), lineColumns);
             // initialize method
             CMethod cMethod = new CMethod();
             index = methodArray.size();
             methodArray.add(cMethod);
             cMethod.setIdx(index);
-            cMethod.setCClass(cClass);
+            cMethod.setCClass(cClazz);
             cMethod.setPsiMethod(psiMethod);
             cMethod.setName(psiMethod.getName());
             cMethod.setSignature(methodSignature);
@@ -47,8 +55,8 @@ public class CMethodDict {
         return index;
     }
 
-    static public CMethod getMethod(PsiMethod psiMethod, List<LineColumn> lineColumns) {
-        return methodArray.get(getMethodIdx(psiMethod, lineColumns));
+    static public CMethod getMethod(PsiMethod psiMethod, List<LineColumn> lineColumns, CClass cClass, boolean folderAsPackage) {
+        return methodArray.get(getMethodIdx(psiMethod, lineColumns, cClass, folderAsPackage));
     }
 
     static public CMethod getMethod(Integer methodIdx) {
