@@ -15,6 +15,7 @@ public class CStatement {
     private Integer fromOffset;
     private Integer toOffset;
     private CMethod cMethod;
+    private boolean isMethodSignature = false;
     private List<Integer> tokens = new ArrayList<>();
     private PsiStatement psiStatement;
     private String text = "";

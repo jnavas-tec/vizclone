@@ -26,8 +26,8 @@ public class CloneCollector {
 
     public static double MIN_SIM = 0.8; // 0.7;
     public static double MIN_SENT_SIM = 0.8;
-    public static int MIN_TOKENS = 100; // 200; //300; // 50;
-    public static int MIN_SENT = 15; // 20; //25;  // 7;
+    public static int MIN_TOKENS = 40; // 200; //300; // 50;
+    public static int MIN_SENT = 5; // 20; //25;  // 7;
     public static int NUM_WEIGHT_LEVELS = 4;
     public static int OVERLAP_PERCENTAGE = 60;
     public static int MIN_WEIGHT = 0;
@@ -301,6 +301,43 @@ public class CloneCollector {
         for (int c = 0; c < this.clones.size(); c++) this.clones.get(c).fixClone(c);
         printLocalDateTime(String.format("Collecting fragments for %d clones...", this.clones.size()));
         FragmentDict.collectFragments(this.clones, this.fragments, this.methods);
+
+        // ======================================================================================
+        printLocalDateTime("Writing clones found to output file...");
+        String projectName = project.getName();
+        // src folder
+        VirtualFile[] vSourceRoots = ProjectRootManager.getInstance(project)
+            .getContentSourceRoots();
+        String outputFilePath = vSourceRoots[0].getPath() + "/clones.csv";
+        try {
+            FileWriter outputWriter = new FileWriter(outputFilePath);
+            for (Clone clone: this.clones) {
+                for (ClonePair pair: clone.getClonePairs()) {
+                    Fragment f1 = pair.getFragments().get(0);
+                    String left = f1.getCClass().getPsiClass().getContainingFile().getContainingDirectory().toString();
+                    left = left.substring(left.lastIndexOf('/') + 1);
+                    Fragment f2 = pair.getFragments().get(1);
+                    String right = f2.getCClass().getPsiClass().getContainingFile().getContainingDirectory().toString();
+                    right = right.substring(right.lastIndexOf('/') + 1);
+                    outputWriter.write(String.format("%s,%s,%d,%d,%s,%s,%d,%d\n",
+                        left,
+                        f1.getCMethod().getCClass().getPsiClass().getContainingFile().getName(),
+                        f1.getFromLineColumn().line,
+                        f1.getToLineColumn().line,
+                        right,
+                        f2.getCMethod().getCClass().getPsiClass().getContainingFile().getName(),
+                        f2.getFromLineColumn().line,
+                        f2.getToLineColumn().line));
+                }
+            }
+            outputWriter.close();
+        }
+        catch (IOException e) {
+            System.out.println("Could not write to file");
+            e.printStackTrace();
+        }
+        // ======================================================================================
+
         this.calculateCCWeight();
         this.sortClones(this.clones);
         printLocalDateTime("Finished processing.\n");

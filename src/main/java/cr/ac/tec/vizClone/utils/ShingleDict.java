@@ -22,8 +22,10 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class ShingleDict {
-    private static List<String> shingleArray = new ArrayList<>();
-    private static Map<String, Integer> shingleDict = new Hashtable<>();
+    //private static List<String> shingleArray = new ArrayList<>();
+    //private static Map<String, Integer> shingleDict = new Hashtable<>();
+    private static List<Integer> intShingleArray = new ArrayList<>();
+    private static Map<Integer, Integer> intShingleDict = new Hashtable<>();
     private static ArrayList<Integer> hash;
 
     // n = 250, b = 25, r = 10, t = (1/b)^(1/r) = 0.73 of similitude
@@ -87,21 +89,22 @@ public class ShingleDict {
 
     /* n = 1000, b = 100, r = 10 => 63% */
     /* n = 1000, b = 40,  r = 25 => 86% */
-    public static final Integer NUM_MIN_HASHES = 420; // 300; //200;//300;//250;//200;
-    public static final Integer b = 28; // 25; //5;//25;//25;//5;
-    public static final Integer r = 15; // 12; //40;//12;//10;//40;
+    /* n = 891, b = 99,  r = 9 => 60% */
+    public static final Integer NUM_MIN_HASHES = 891; // 300; //200;//300;//250;//200;
+    public static final Integer b = 99; // 25; //5;//25;//25;//5;
+    public static final Integer r = 9; // 12; //40;//12;//10;//40;
 
     static public void reset() {
-        shingleDict.clear();
-        shingleArray.clear();
+        intShingleDict.clear();
+        intShingleArray.clear();
     }
 
-    static public Integer getShingleId(String shingle) {
-        if (!shingleDict.containsKey(shingle)) {
-            shingleArray.add(shingle);
-            shingleDict.put(shingle, shingleDict.size());
+    static public Integer getShingleId(Integer shingle) {
+        if (!intShingleDict.containsKey(shingle)) {
+            intShingleArray.add(shingle);
+            intShingleDict.put(shingle, intShingleDict.size());
         }
-        return shingleDict.get(shingle);
+        return intShingleDict.get(shingle);
     }
 
     static private List<Integer> getIntegerStreamRange(Integer start, Integer end) {
@@ -117,7 +120,7 @@ public class ShingleDict {
     }
 
     static private ArrayList<Integer> getFirstMinhash() {
-        hash = new ArrayList<>(getIntegerStreamRange(0, shingleDict.size()));
+        hash = new ArrayList<>(getIntegerStreamRange(0, intShingleDict.size()));
         Collections.shuffle(hash);
         return hash;
     }
@@ -207,7 +210,18 @@ public class ShingleDict {
                         method.getShingleSignature().add(Integer.MAX_VALUE);
                         method.getShingleSet()
                             .forEach(shingle ->
-                                method.getShingleSignature().set(h_i, Math.min(method.getShingleSignature().get(h_i), hash.get(shingle)))
+                                {
+                                    /*
+                                    if (method.getShingleSignature().size() <= h_i) {
+                                        boolean stopHere = true;
+                                    }
+                                    if (!hash.contains(shingle)) {
+                                        boolean stopThenHere = true;
+                                    }
+
+                                     */
+                                    method.getShingleSignature().set(h_i, Math.min(method.getShingleSignature().get(h_i), hash.get(shingle)));
+                                }
                             );
                     });
                 hash = getNextMinhash();
@@ -261,13 +275,28 @@ public class ShingleDict {
                 minhashReader.close();
                 Files.delete(Path.of("/Users/jnavas/temp/minhash" + String.valueOf(band) + ".csv"));
                 //System.out.print("\\");
+                List<CMethod> badMethods = methodList.stream().filter(method -> method.getIdx() == methodList.size()).toList();
+                // DEBUG: DELETE
+                //if (badMethods.size() > 0) {
+                //    boolean wtf = true;
+                //}
                 // collect candidate methods in buckets per band
                 ConcurrentMap<Integer, List<Integer>> buckets =
                     methodList.stream()
                         .map(CMethod::getIdx)
                         .toList()
                         .parallelStream()
-                        .collect(Collectors.groupingByConcurrent(method -> methodsMinhashes.get(method).hashCode()));
+                        .collect(Collectors.groupingByConcurrent(method -> {
+                            try {
+                                return methodsMinhashes.get(method).hashCode();
+                            }
+                            catch (Exception ex) {
+                                return -1024;
+                            }
+                        }));
+                if (buckets.containsKey((int)-1024)) {
+                    buckets.remove((int)-1024);
+                }
                 //System.out.print("_");
                 // add candidate pairs to tuples pairList
                 List<List<Tuple2<Integer, Integer>>> pairLists = buckets.values()

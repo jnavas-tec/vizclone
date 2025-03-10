@@ -25,6 +25,9 @@ public class CMethodDict {
         if (folderAsPackage) {
             cClazz = cClass;
             methodSignature = cClazz.getSignature() + "." + psiMethod.getName() + psiMethod.getParameterList().getText();
+            Integer idx = 0;
+            while (methodDict.get(methodSignature) != null)
+                methodSignature = cClazz.getSignature() + "." + psiMethod.getName() + idx++ + psiMethod.getParameterList().getText();
         }
         else {
             PsiClass containingClass = psiMethod.getContainingClass();
@@ -36,6 +39,9 @@ public class CMethodDict {
             cClazz = CClassDict.getClass(psiMethod.getContainingClass(), lineColumns, false);
         }
         Integer index = methodDict.get(methodSignature);
+        if (methodArray.size() >= 13475) {
+            boolean OMG = true;
+        }
         if (index == null) {
             // initialize method
             CMethod cMethod = new CMethod();
@@ -52,6 +58,10 @@ public class CMethodDict {
             cMethod.setToLineColumn(lineColumns.get(cMethod.getToOffset()));
             methodDict.put(methodSignature, cMethod.getIdx());
         }
+        // DEBUG: DELETE
+        //else {
+        //    boolean wtf = true;
+        //}
         return index;
     }
 
@@ -92,6 +102,7 @@ public class CMethodDict {
         CMethod cMethod = getMethod(methodIdx);
         if (cMethod != null) {
             cMethod.getCStatements().add(cStatement);
+            /*
             int size = cMethod.getCStatements().size();
             if (!JavaElementType.BLOCK_STATEMENT.equals(cStatement.getPsiStatement().getNode().getElementType()) && size > 1) {
                 int leftFrom = cMethod.getCStatements().get(size-2).getFromLineColumn().line;
@@ -102,6 +113,7 @@ public class CMethodDict {
                     boolean WTF = true;
                 }
             }
+             */
         }
     }
 
