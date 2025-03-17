@@ -6,7 +6,6 @@ import cr.ac.tec.vizClone.model.ClonePair;
 import groovy.lang.Tuple2;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.CSVRecord;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -19,84 +18,31 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class ShingleDict {
-    //private static List<String> shingleArray = new ArrayList<>();
-    //private static Map<String, Integer> shingleDict = new Hashtable<>();
     private static List<Integer> intShingleArray = new ArrayList<>();
     private static Map<Integer, Integer> intShingleDict = new Hashtable<>();
     private static ArrayList<Integer> hash;
+    private static ArrayList<ArrayList<Integer>> hashes;
 
-    // n = 250, b = 25, r = 10, t = (1/b)^(1/r) = 0.73 of similitude
-    // n = 200, b = 10, r = 20, t = (1/b)^(1/r) = 0.89 of similitude
-    // n = 200, b =  5, r = 40, t = (1/b)^(1/r) = 0.96 of similitude
-    /*
-        n = 300
-            b = 2.0,   r = 150.0, t = 0.995
-            b = 3.0,   r = 100.0, t = 0.989
-            b = 4.0,   r = 75.0,  t = 0.981
-            b = 5.0,   r = 60.0,  t = 0.973
-            b = 6.0,   r = 50.0,  t = 0.964
-            b = 10.0,  r = 30.0,  t = 0.926
-            b = 12.0,  r = 25.0,  t = 0.905
-            b = 15.0,  r = 20.0,  t = 0.873
-            b = 20.0,  r = 15.0,  t = 0.818
-            b = 25.0,  r = 12.0,  t = 0.764
-            b = 30.0,  r = 10.0,  t = 0.711
-            b = 50.0,  r = 6.0,   t = 0.521
-            b = 60.0,  r = 5.0,   t = 0.440
-            b = 75.0,  r = 4.0,   t = 0.339
-            b = 100.0, r = 3.0,   t = 0.215
-            b = 150.0, r = 2.0,   t = 0.081
 
-        n = 250
-            b = 2.0,   r  = 125.0, t = 0.994
-            b = 5.0,   r  = 50.0,  t = 0.968
-            b = 10.0,  r = 25.0,   t = 0.912
-            b = 25.0,  r = 10.0,   t = 0.724
-            b = 50.0,  r = 5.0,    t = 0.457
-            b = 125.0, r = 2.0,    t = 0.089
-
-        n = 200
-            b = 2.0,   r = 100.0, t = 0.993
-            b = 4.0,   r = 50.0,  t = 0.972
-            b = 5.0,   r = 40.0,  t = 0.960
-            b = 8.0,   r = 25.0,  t = 0.920
-            b = 10.0,  r = 20.0,  t = 0.891
-            b = 20.0,  r = 10.0,  t = 0.741
-            b = 25.0,  r = 8.0,   t = 0.668
-            b = 40.0,  r = 5.0,   t = 0.478
-            b = 50.0,  r = 4.0,   t = 0.376
-            b = 100.0, r = 2.0,   t = 0.1
-
-        n = 1000
-            b = 2.0,   r = 500.0, t = 0.9986
-            b = 4.0,   r = 250.0, t = 0.9944
-            b = 5.0,   r = 200.0, t = 0.9919
-            b = 8.0,   r = 125.0, t = 0.9835
-            b = 10.0,  r = 100.0, t = 0.9772
-            b = 20.0,  r = 50.0,  t = 0.9418
-            b = 25.0,  r = 40.0,  t = 0.9226
-            b = 40.0,  r = 25.0,  t = 0.8628
-            b = 50.0,  r = 20.0,  t = 0.8223
-            b = 100.0, r = 10.0,  t = 0.6309
-            b = 125.0, r = 8.0,   t = 0.5468
-            b = 200.0, r = 5.0,   t = 0.3465
-            b = 250.0, r = 4.0,   t = 0.2514
-            b = 500.0, r = 2.0,   t = 0.0447
-     */
-
-    /* n = 1000, b = 100, r = 10 => 63% */
-    /* n = 1000, b = 40,  r = 25 => 86% */
-    /* n = 891, b = 99,  r = 9 => 60% */
-    public static final Integer NUM_MIN_HASHES = 891; // 300; //200;//300;//250;//200;
-    public static final Integer b = 99; // 25; //5;//25;//25;//5;
-    public static final Integer r = 9; // 12; //40;//12;//10;//40;
+    public static final Integer NUM_MIN_HASHES = 32;
+    public static final Integer b = 28;
+    public static final Integer r = 4;
 
     static public void reset() {
         intShingleDict.clear();
         intShingleArray.clear();
+        intShingleDict = new Hashtable<>();
+        intShingleArray = new ArrayList<>();
+    }
+
+    static public Integer getNumShingles() {
+        return (intShingleArray != null) ? intShingleArray.size() : 0;
+    }
+
+    static public Integer getHashesSize() {
+        return hashes.stream().mapToInt(ArrayList::size).sum();
     }
 
     static public Integer getShingleId(Integer shingle) {
@@ -128,6 +74,131 @@ public class ShingleDict {
     static private ArrayList<Integer> getNextMinhash() {
         Collections.shuffle(hash);
         return hash;
+    }
+
+    static public void initHashes(Integer numHashes) {
+        ArrayList<Integer> hash = new ArrayList<>(getIntegerStreamRange(0, intShingleDict.size()));
+        hashes = new ArrayList<>();
+        for (int idx = 0; idx < numHashes; idx++) {
+            Collections.shuffle(hash);
+            ArrayList<Integer> shuffledHash = new ArrayList<>(getIntegerStreamRange(0, intShingleDict.size()));
+            Collections.copy(hash, shuffledHash);
+            hashes.add(shuffledHash);
+        }
+    }
+
+    static public void clearHashes() {
+        hashes.forEach(hash -> { hash.clear(); });
+        hashes.clear();
+        hashes = null;
+        reset();
+    }
+
+    static public void setMethodMinhashBandSignature(CMethod method, Shingler shingler) {
+        final int bands = b;
+        final int rows = r;
+        TreeSet<Integer> shingleSet = new TreeSet<>();
+        while (shingler.hasShingles()) {
+            shingleSet.add(ShingleDict.getShingleId(shingler.getNextShingle()));
+        }
+
+        int numMinHashes = bands * rows;
+        ArrayList<Integer> signature = new ArrayList<>();
+        for (int idx = 0; idx < numMinHashes; idx++) {
+            final int h_i = idx;
+            //final ArrayList<Integer> hash = hashes.get(idx);
+            signature.add(Integer.MAX_VALUE);
+            shingleSet.forEach(r -> signature.set(h_i, Math.min(signature.get(h_i), Shingler.hashShingle(r, h_i))));
+        }
+        shingleSet.clear();
+        for (int band = 0; band < bands; band++) {
+            final int bandStart = band * rows;
+            final int bandEnd = bandStart + rows;
+            method.getLshBandHashes().add(Shingler.hashCodeRange(signature.subList(bandStart, bandEnd)));
+        }
+        signature.clear();
+    }
+
+    static public void setMinhashBandSignatures(List<CMethod> methodList, Integer bands, Integer rows) {
+        int numMinHashes = bands * rows;
+        initHashes(numMinHashes);
+        methodList.parallelStream()
+            .forEach(method -> {
+                for (int idx = 0; idx < numMinHashes; idx++) {
+                    final int h_i = idx;
+                    final ArrayList<Integer> hash = hashes.get(idx);
+                    method.getShingleSignature().add(Integer.MAX_VALUE);
+                    method.getShingleSet()
+                        .forEach(r ->
+                            method.getShingleSignature().set(h_i, Math.min(method.getShingleSignature().get(h_i), hash.get(r)))
+                        );
+                }
+                method.getShingleSet().clear();
+                method.setShingleSet(null);
+                for (int band = 0; band < bands; band++) {
+                    final int bandStart = band * rows;
+                    final int bandEnd = bandStart + rows;
+                    method.getLshBandHashes().add(method.getShingleSignature().subList(bandStart, bandEnd).hashCode());
+                }
+                method.getShingleSignature().clear();
+                method.setShingleSignature(null);
+            });
+        clearHashes();
+    }
+
+    static public List<Clone> lshMinhashBandSignatures(List<CMethod> methodList) {
+        final int bands = b;
+        List<Clone> methodPairs = new ArrayList<>();
+        List<HashSet<Integer>> lshBuckets = new ArrayList<>();
+        Set<Tuple2<Integer, Integer>> pairList = new TreeSet<>();
+        // LSH Minhash signatures to b bands with r rows
+        for (int band = 0; band < bands; band++) {
+            final int b = band;
+            // collect candidate methods in buckets per band
+            ConcurrentMap<Integer, List<Integer>> buckets = methodList
+                .stream()
+                .map(CMethod::getIdx)
+                .toList()
+                .parallelStream()
+                .collect(Collectors.groupingByConcurrent(method -> {
+                    //List<CMethod> list = CMethodDict.list();
+                    //if (method >= list.size() || b >= list.get(method).getLshBandHashes().size()) {
+                    //    boolean OMG = true;
+                    //}
+                    return CMethodDict.list().get(method).getLshBandHashes().get(b);
+                }));
+            // add candidate pairs to tuples pairList
+            buckets.values()
+                .stream()
+                .map(list -> list.stream().distinct().collect(Collectors.toList()))
+                .filter(lst -> lst.size() > 1)
+                .forEach(lst -> {
+                    for (int left = 0; left < lst.size() - 1; left++) {
+                        for (int right = left + 1; right < lst.size(); right++) {
+                            Integer leftMethod = Math.min(lst.get(left), lst.get(right));
+                            Integer rightMethod = Math.max(lst.get(left), lst.get(right));
+                            if (!leftMethod.equals(rightMethod)) {
+                                Tuple2<Integer, Integer> pair = new Tuple2<>(leftMethod, rightMethod);
+                                pairList.add(pair);
+                            }
+                        }
+                    }
+                });
+        }
+        methodList.parallelStream()
+            .forEach(method -> {
+                method.getLshBandHashes().clear();
+                method.setLshBandHashes(null);
+            });
+        for (Tuple2<Integer, Integer> pair : pairList) {
+            Clone clone = new Clone();
+            ClonePair clonePair = new ClonePair();
+            clone.addClonePair(clonePair);
+            clonePair.setClone(clone);
+            clonePair.addFragments(CMethodDict.list().get(pair.getV1()), CMethodDict.list().get(pair.getV2()));
+            methodPairs.add(clone);
+        }
+        return methodPairs;
     }
 
     static public void setMinhashSignatures(List<CMethod> methodList, Integer numMinHashes) {

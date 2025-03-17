@@ -39,9 +39,6 @@ public class CMethodDict {
             cClazz = CClassDict.getClass(psiMethod.getContainingClass(), lineColumns, false);
         }
         Integer index = methodDict.get(methodSignature);
-        if (methodArray.size() >= 13475) {
-            boolean OMG = true;
-        }
         if (index == null) {
             // initialize method
             CMethod cMethod = new CMethod();
@@ -58,10 +55,6 @@ public class CMethodDict {
             cMethod.setToLineColumn(lineColumns.get(cMethod.getToOffset()));
             methodDict.put(methodSignature, cMethod.getIdx());
         }
-        // DEBUG: DELETE
-        //else {
-        //    boolean wtf = true;
-        //}
         return index;
     }
 
@@ -86,8 +79,13 @@ public class CMethodDict {
     }
 
     static public void removeMethod(CMethod method) {
+        int idx = methodDict.get(method.getSignature());
         methodArray.remove((int) methodDict.get(method.getSignature()));
         methodDict.remove(method.getSignature());
+        for (;idx < methodArray.size(); idx++) {
+            methodArray.get(idx).setIdx(idx);
+            methodDict.put(method.getSignature(), idx);
+        }
     }
 
     static public Map<String, Integer> dict() {

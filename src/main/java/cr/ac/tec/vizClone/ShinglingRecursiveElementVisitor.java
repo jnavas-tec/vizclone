@@ -1,13 +1,12 @@
 package cr.ac.tec.vizClone;
 
 import com.intellij.lang.ASTNode;
-import com.intellij.psi.JavaRecursiveElementVisitor;
-import com.intellij.psi.JavaTokenType;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiMethod;
+import com.intellij.psi.*;
+import com.intellij.psi.impl.source.tree.JavaElementType;
 import com.intellij.psi.tree.IElementType;
 import cr.ac.tec.vizClone.utils.ShingleDict;
 import cr.ac.tec.vizClone.utils.Shingler;
+import cr.ac.tec.vizClone.utils.StatementDict;
 import cr.ac.tec.vizClone.utils.TokenDict;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,7 +33,6 @@ public class ShinglingRecursiveElementVisitor extends JavaRecursiveElementVisito
         if (prevVisitingMethod) {
             this.methodTokens.add(TokenDict.getTokenId(method.getNode().getElementType()));
         }
-        //this.methodSourceCode = new StringBuilder();
         this.methodTokens = new ArrayList<>();
         super.visitMethod(method);
         this.updateShingleDict();
@@ -42,10 +40,12 @@ public class ShinglingRecursiveElementVisitor extends JavaRecursiveElementVisito
         this.methodTokens = prevMethodTokens;
     }
 
+    @Override
+    public void visitStatement(@NotNull PsiStatement statement) {
+        super.visitStatement(statement);
+    }
+
     private void updateShingleDict() {
-        //for (int i = 0; i < this.methodSourceCode.length() - SHINGLE_SIZE; i++) {
-        //    ShingleDict.getShingleId(this.methodSourceCode.substring(i, i + SHINGLE_SIZE));
-        //}
         Shingler shingler = new Shingler(this.methodTokens);
         while (shingler.hasShingles()) {
             ShingleDict.getShingleId(shingler.getNextShingle());
@@ -63,8 +63,6 @@ public class ShinglingRecursiveElementVisitor extends JavaRecursiveElementVisito
             && astNode.getTextLength() > 0
             && !skipTokens.contains(elementType))
         {
-            //this.methodSourceCode.append(doGenericComparison(elementType) ? elementType.getDebugName() : element.getNode().getText());
-            //this.methodSourceCode.append(" ");
             String tokenText = element.getNode().getText();
             Integer tokenId = doGenericComparison(elementType) ? TokenDict.getTokenId(elementType) : TokenDict.getTokenId(tokenText);
             this.methodTokens.add(tokenId);

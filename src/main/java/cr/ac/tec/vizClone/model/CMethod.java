@@ -21,8 +21,9 @@ public class CMethod {
     private Integer numTokens = 0;
     private CClass cClass;
     private List<CStatement> cStatements = new ArrayList<>();
-    private TreeSet<Integer> shingleSet = new TreeSet<>();
-    private ArrayList<Integer> shingleSignature = new ArrayList<>();
+    private TreeSet<Integer> shingleSet = null; //new TreeSet<>();
+    private ArrayList<Integer> shingleSignature = null; //new ArrayList<>();
+    private ArrayList<Integer> lshBandHashes = new ArrayList<>();
     private PsiMethod psiMethod;
     private int ccScore;
 

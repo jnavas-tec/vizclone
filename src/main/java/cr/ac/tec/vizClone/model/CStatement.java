@@ -1,6 +1,7 @@
 package cr.ac.tec.vizClone.model;
 
 import com.intellij.openapi.util.text.LineColumn;
+import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiStatement;
 import lombok.Data;
 

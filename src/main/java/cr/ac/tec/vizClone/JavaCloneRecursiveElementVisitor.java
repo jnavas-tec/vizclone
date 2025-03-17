@@ -48,6 +48,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     // Cognitive Complexity
     private int ccNestingLevel = 0;
     private int ccScore = 0;
+    private static int numLines;
 
     private boolean folderAsPackage = false;
 
@@ -62,6 +63,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     @Override
     public void visitFile(@NotNull PsiFile file) {
         lineColumns = mapOffsetToLineColumn(file.getText());
+        cloneCollector.numLines += numLines;
         super.visitFile(file);
     }
 
@@ -91,6 +93,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     public void visitMethod(PsiMethod method) {
         //if (this.visitingClass && !this.visitingAnonymousClass && !this.visitingMethod) {
             CMethod prevCMethod = this.cMethod;
+            CStatement prevCStatement = this.cStatement;
             this.cMethod = CMethodDict.getMethod(method, this.lineColumns, this.cClass, folderAsPackage);
             //if (this.cMethod.getCStatements().size() == 0) {
                 boolean prevVisitingMethod = this.visitingMethod;
@@ -105,8 +108,8 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
                 super.visitMethod(method);
                 CMethodDict.sumStatementTokens(cMethod.getIdx(), cStatement);
                 cStatement.setText(this.sentenceSourceCode.toString());
-                // add method if it has minimun number of sentences (-2 to take into account the method braces)
-                if (this.cMethod.getCStatements().size() < this.minSentences - 2 || this.cMethod.getNumTokens() < this.minTokens - 2) {
+                // add method if it has minimun number of sentences
+                if (this.cMethod.getCStatements().size() < this.minSentences || this.cMethod.getNumTokens() < this.minTokens) {
                     // DEBUG: DELETE
                     //if (this.cMethod.getName().equals("fib")) {
                     //    boolean again = true;
@@ -114,10 +117,9 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
                     CMethodDict.removeMethod(this.cMethod);
                 }
                 else {
-                    this.addMethodBraces(method);
                     cMethod.setCcScore(ccScore);
                     CClassDict.addMethod(cClass.getIdx(), cMethod);
-                    this.collectMethodShingles();
+                    ShingleDict.setMethodMinhashBandSignature(this.cMethod, new Shingler(this.methodTokens));
                 }
                 this.visitingMethod = prevVisitingMethod;
                 this.cMethod = prevCMethod;
@@ -128,26 +130,18 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         //}
         //else
         //    super.visitMethod(method);
-    }
-
-    private void collectMethodShingles() {
-        //for (int i = 0; i < this.methodSourceCode.length() - ShinglingRecursiveElementVisitor.SHINGLE_SIZE; i++) {
-        //    this.cMethod.getShingleSet().add(ShingleDict.getShingleId(this.methodSourceCode.substring(i, i + ShinglingRecursiveElementVisitor.SHINGLE_SIZE)));
-        //}
-        //this.methodSourceCode = null;
-        Shingler shingler = new Shingler(this.methodTokens);
-        while (shingler.hasShingles()) {
-            this.cMethod.getShingleSet().add(ShingleDict.getShingleId(shingler.getNextShingle()));
-        }
-        this.methodTokens = null;
+        this.cStatement = prevCStatement;
     }
 
     @Override
     public void visitCodeBlock(PsiCodeBlock block) {
-        boolean previousVisitingCodeBlock = visitingCodeBlock;
-        visitingCodeBlock = true;
-        super.visitCodeBlock(block);
-        visitingCodeBlock = previousVisitingCodeBlock;
+        if (this.visitingMethod && this.cStatement.isMethodSignature()) {
+            addLeftMethodBrace(this.cMethod.getPsiMethod());
+            super.visitCodeBlock(block);
+            addRightMethodBrace(this.cMethod.getPsiMethod());
+        }
+        else
+            super.visitCodeBlock(block);
     }
 
     private void addStatement(PsiStatement psiStatement) {
@@ -235,20 +229,27 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         return cStatement;
     }
 
-    private void addMethodBraces(PsiMethod method) {
-        Integer lastChildren = method.getChildren().length - 1;
+    private void addLeftMethodBrace(PsiMethod method) {
         if (method.getLastChild().getNode().getElementType().equals(JavaElementType.CODE_BLOCK)) {
             PsiElement leftBrace = method.getLastChild().getFirstChild();
-            PsiElement rightBrace = method.getLastChild().getLastChild();
             CStatement cStatement = this.addMethodBrace(method, leftBrace);
             cStatement.getTokens().add(TokenDict.getTokenId(JavaTokenType.LBRACE));
             cStatement.setText("{");
-            cMethod.getCStatements().add(1, cStatement);
-            cStatement = this.addMethodBrace(method, rightBrace);
+            cMethod.getCStatements().add(cStatement);
+            cMethod.setNumTokens(cMethod.getNumTokens() + 1);
+            //this.methodTokens.add(TokenDict.getTokenId(JavaTokenType.LBRACE));
+        }
+    }
+
+    private void addRightMethodBrace(PsiMethod method) {
+        if (method.getLastChild().getNode().getElementType().equals(JavaElementType.CODE_BLOCK)) {
+            PsiElement rightBrace = method.getLastChild().getLastChild();
+            CStatement cStatement = this.addMethodBrace(method, rightBrace);
             cStatement.getTokens().add(TokenDict.getTokenId(JavaTokenType.RBRACE));
             cStatement.setText("}");
             cMethod.getCStatements().add(cStatement);
-            cMethod.setNumTokens(cMethod.getNumTokens() + 2);
+            cMethod.setNumTokens(cMethod.getNumTokens() + 1);
+            //this.methodTokens.add(TokenDict.getTokenId(JavaTokenType.RBRACE));
         }
     }
 
@@ -351,6 +352,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
                     // fix end of block start
                     cStatement.setToLineColumn(cStatement.getFromLineColumn());
                     cStatement.setToOffset(cStatement.getFromOffset());
+                    //methodTokens.add(TokenDict.getTokenId(JavaTokenType.LBRACE));
                 }
             //}
             this.preCC(this.ccElementToCheck(psiStatement));
@@ -372,6 +374,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
                     // fix start of block end
                     cStatement.setFromLineColumn(cStatement.getToLineColumn());
                     cStatement.setFromOffset(cStatement.getToOffset());
+                    //methodTokens.add(TokenDict.getTokenId(JavaTokenType.RBRACE));
                 } else {
                     CMethodDict.sumStatementTokens(cMethod.getIdx(), cStatement);
                     cStatement.setText(this.sentenceSourceCode.toString());
@@ -432,6 +435,8 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
 
     private static final List<IElementType> skipTokens = Arrays.asList(JavaTokenType.WHITE_SPACE, JavaTokenType.END_OF_LINE_COMMENT, JavaTokenType.C_STYLE_COMMENT);
 
+    private static final List<IElementType> methodBlockStatements = Arrays.asList(JavaElementType.METHOD, JavaElementType.BLOCK_STATEMENT);
+
     @Override
     public void visitElement(@NotNull PsiElement element) {
         ASTNode astNode = element.getNode();
@@ -439,23 +444,22 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         if (visitingClass && visitingMethod
             && element.getChildren().length == 0
             && astNode.getTextLength() > 0
-            && !skipTokens.contains(elementType)
-            && (!braceElements.contains(elementType) || (cStatement != null &&
-                !JavaElementType.BLOCK_STATEMENT.equals(StatementDict.getStatement(cStatement.getStatementId())) &&
-                !JavaElementType.METHOD.equals(StatementDict.getStatement(cStatement.getStatementId())))))
+            && !skipTokens.contains(elementType))
         {
             String tokenText = element.getNode().getText();
             Integer tokenId = doGenericComparison(elementType) ? TokenDict.getTokenId(elementType) : TokenDict.getTokenId(tokenText);
-            //this.methodSourceCode.append(doGenericComparison(elementType) ? elementType.getDebugName() : element.getNode().getText());
-            //this.methodSourceCode.append(" ");
+
             this.methodTokens.add(tokenId);
 
-            //if (visitingCodeBlock && visitingStatement && cStatement != null) {
-            if (cStatement != null) {
-                cStatement.getTokens().add(tokenId);
-                // this is needed to identify Type 1 clones
-                this.sentenceSourceCode.append(element.getNode().getText());
-                this.sentenceSourceCode.append(" ");
+            if (!braceElements.contains(elementType) ||
+                (cStatement != null && !methodBlockStatements.contains(StatementDict.getStatement(cStatement.getStatementId()))))
+            {
+                if (cStatement != null) {
+                    cStatement.getTokens().add(tokenId);
+                    // this is needed to identify Type 1 clones
+                    this.sentenceSourceCode.append(element.getNode().getText());
+                    this.sentenceSourceCode.append(" ");
+                }
             }
         }
         super.visitElement(element);
@@ -500,6 +504,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
             }
             curOffset++;
         }
+        numLines = curLine;
 
         return list;
     }

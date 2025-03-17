@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -38,6 +40,10 @@ public class CloneCollector {
     private ArrayList<Method> methods = new ArrayList<>();
 
     private LocalDateTime previousDateTime = null;
+
+    public Integer numLines = 0;
+    private Integer numMethods = 0;
+    private Integer numFiles = 0;
 
     private void printLocalDateTime(String message) {
         long elapsedMinutes = 0;
@@ -171,13 +177,14 @@ public class CloneCollector {
         VirtualFile[] vSourceRoots = ProjectRootManager.getInstance(project)
             .getContentSourceRoots();
         String outputFilePath = vSourceRoots[0].getPath() + "/clones.csv";
+        Instant start = Instant.now();
         try {
             FileWriter outputWriter = new FileWriter(outputFilePath);
             printLocalDateTime("Collecting java virtual files from reduced BCB dataset...");
             // src/ijadataset/bcb_reduced/<folders>
             List<List<VirtualFile>> javaVFilesLists = Arrays.stream(vSourceRoots)
                 .map(vFile -> CloneCollector.collectJavaClassesInSubfolders(
-                    vFile.findChild("bcb").findChild("ijadataset").findChild("bcb_reduced")))
+                    vFile.findChild("bcb").findChild("ijadataset").findChild("bcb_reduced")/*.findChild("5")*/))
                 .collect(Collectors.toList())
                 .stream()
                 .flatMap(l -> l.stream())
@@ -200,22 +207,38 @@ public class CloneCollector {
 
                 printLocalDateTime("Collecting shingles...");
                 CloneConfig cloneConfig = new CloneConfig(true, true);
+
                 javaPsiFilesList.stream()
                     .forEach(javaPsiFile -> javaPsiFile.accept(new ShinglingRecursiveElementVisitor(cloneConfig)));
 
-                printLocalDateTime(String.format("Collecting methods from %d Java Psi files...", javaPsiFilesList.size()));
+                //printLocalDateTime(String.format("Initializing hashes from %d Java Psi files  (%d shingles found)...",
+                //    javaPsiFilesList.size(), ShingleDict.getNumShingles()));
+
+                //ShingleDict.initHashes(ShingleDict.NUM_MIN_HASHES);
+
+                this.numFiles += javaPsiFilesList.size();
+                printLocalDateTime(String.format("Collecting methods from %d Java Psi files (%d shingles found)...",
+                    javaPsiFilesList.size(), ShingleDict.getNumShingles()));
                 javaPsiFilesList.stream()//.limit(30000)
                     .forEach(javaPsiFile -> javaPsiFile.accept(
                         new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS, cloneConfig, true))
                     );
 
-                printLocalDateTime(String.format("Collecting minhash signatures for %d methods...", CMethodDict.list().size()));
-                ShingleDict.setMinhashSignaturesInFiles(CMethodDict.list(), ShingleDict.b, ShingleDict.r);
+                this.numMethods += CMethodDict.list().size();
 
-                List<CMethod> methods = CMethodDict.list();
+                //ShingleDict.clearHashes();
 
-                printLocalDateTime("Collecting LSH for minhash signatures and generating similar pairs...");
-                List<Clone> similarPairs = ShingleDict.lshMinhashSignaturesFromFiles(methods, ShingleDict.b, ShingleDict.r);
+                //printLocalDateTime(String.format("Collecting minhash signatures for %d methods...", CMethodDict.list().size()));
+                ////ShingleDict.setMinhashSignaturesInFiles(CMethodDict.list(), ShingleDict.b, ShingleDict.r);
+                //ShingleDict.setMinhashBandSignatures(CMethodDict.list(), ShingleDict.b, ShingleDict.r);
+
+                //List<CMethod> methods = CMethodDict.list();
+
+                printLocalDateTime(String.format(
+                    "Collecting LSH for minhash signatures and generating similar pairs (%d shingles found)...",
+                    ShingleDict.getNumShingles()));
+                //List<Clone> similarPairs = ShingleDict.lshMinhashSignaturesFromFiles(methods, ShingleDict.b, ShingleDict.r);
+                List<Clone> similarPairs = ShingleDict.lshMinhashBandSignatures(CMethodDict.list());
 
                 printLocalDateTime(String.format("Collecting clones from %d similar pairs...", similarPairs.size()));
                 this.clones = (ArrayList<Clone>) similarPairs
@@ -226,12 +249,14 @@ public class CloneCollector {
 
                 printLocalDateTime(String.format("Fixing fragment indices from %d clones...", this.clones.size()));
                 FragmentDict.indexFragments();
-                printLocalDateTime(String.format("Merging clone pairs from %d clones...", this.clones.size()));
                 for (int c = 0; c < this.clones.size(); c++) this.clones.get(c).fixClone(c);
+                /*
+                printLocalDateTime(String.format("Merging clone pairs from %d clones...", this.clones.size()));
                 this.mergeClonePairs(OVERLAP_PERCENTAGE);
                 printLocalDateTime(String.format("Fixing %d collected clones...", this.clones.size()));
                 for (int c = 0; c < this.clones.size(); c++) this.clones.get(c).fixClone(c);
                 this.calculateCCWeight();
+                 */
                 printLocalDateTime(String.format("Collecting fragments for %d clones...", this.clones.size()));
                 FragmentDict.collectFragments(this.clones, this.fragments, this.methods);
                 printLocalDateTime("Writing clones found to output file...");
@@ -257,7 +282,12 @@ public class CloneCollector {
                 printLocalDateTime("");
             }
             outputWriter.close();
-            printLocalDateTimeLabel("Finished processing.\n");
+            printLocalDateTimeLabel(String.format("Number of files processed: %d.", numFiles));
+            printLocalDateTimeLabel(String.format("Number of lines processed: %d.", numLines));
+            printLocalDateTimeLabel(String.format("Number of methods processed: %d.", numMethods));
+            Instant finish = Instant.now();
+            long timeElapsed = Duration.between(start, finish).toSeconds();
+            printLocalDateTimeLabel(String.format("Finished processing in %d minutes %d seconds.\n", timeElapsed / 60, timeElapsed % 60));
         }
         catch (IOException e) {
             System.out.println("Could not write to file");
