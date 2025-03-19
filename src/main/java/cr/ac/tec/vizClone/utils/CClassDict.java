@@ -1,10 +1,9 @@
 package cr.ac.tec.vizClone.utils;
 
 import com.intellij.openapi.util.text.LineColumn;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiPackage;
+import com.intellij.psi.*;
+import com.intellij.psi.impl.source.JavaFileElementType;
+import com.intellij.psi.impl.source.PsiJavaFileImpl;
 import com.intellij.psi.impl.source.tree.JavaElementType;
 import com.intellij.psi.util.PsiUtil;
 import cr.ac.tec.vizClone.model.CClass;
@@ -38,6 +37,23 @@ public class CClassDict {
         return parentClasses + ((PsiClass)psiClass).getName();
     }
 
+    static private String getQualifiedClassName(PsiClass psiClass) {
+        String packageName = ((PsiJavaFileImpl)psiClass.getContainingFile()).getPackageName() + ".";
+        String qualifiedClassName = "";
+        PsiElement psiElement = psiClass.getParent();
+        while (psiElement != null) {
+            if (psiElement.getNode() != null && psiElement.getNode().getElementType() == JavaElementType.CLASS) {
+                PsiClass clazz = (PsiClass)psiElement;
+                if (qualifiedClassName.length() > 0)
+                    qualifiedClassName = clazz.getName() + "." + qualifiedClassName;
+                else
+                    qualifiedClassName = clazz.getName();
+            }
+            psiElement = psiElement.getParent();
+        }
+        return packageName + qualifiedClassName;
+    }
+
     static public Integer getClassIdx(PsiClass psiClass, List<LineColumn> lineColumns, boolean folderAsPackage) {
         String qualifiedName = "";
         String className = psiClass.getName() == null ? "ANON" + (anonCount++).toString() : getParentClasses(psiClass);
@@ -48,10 +64,25 @@ public class CClassDict {
             qualifiedName = directory + "." + filename + "." + className;
         }
         else {
-            qualifiedName = psiClass.getQualifiedName();
-            if (qualifiedName == null) qualifiedName = className;
+            //qualifiedName = psiClass.getQualifiedName();
+            if (psiClass.getName() == null)
+                qualifiedName = getQualifiedClassName(psiClass) + "." + className;
+            else
+                qualifiedName = getQualifiedClassName(psiClass) + "." + psiClass.getName();
+            //if (qualifiedName == null) qualifiedName = className;
         }
         Integer index = classDict.get(qualifiedName);
+        if (index != null) {
+            Integer idx = 0;
+            String nextName = qualifiedName + "." + idx++;
+            index = classDict.get(nextName);
+            while (index != null) {
+                nextName = qualifiedName + "." + idx++;
+                index = classDict.get(nextName);
+            }
+            qualifiedName = nextName;
+        }
+
         if (index == null) {
             // retrieve package
             String packageName = PsiUtil.getPackageName(psiClass);

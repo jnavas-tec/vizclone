@@ -68,7 +68,7 @@ public class CloneCollector {
         System.out.println(String.format("%s: %s", formatter.format(currentDateTime), label));
     }
 
-    private boolean collectMethodsMinhashSignatures(@NotNull Project project) {
+    private void collectMethodsMinhashSignatures(@NotNull Project project) {
         this.resetDictionaries();
         String projectName = project.getName();
         VirtualFile[] vSourceRoots = ProjectRootManager.getInstance(project)
@@ -82,6 +82,7 @@ public class CloneCollector {
             .collect(Collectors.toList());
         printLocalDateTime("Collecting java psi files...");
         List<PsiFile> javaPsiFilesList = PsiUtilCore.toPsiFiles(PsiManager.getInstance(project), javaVFilesList);
+        this.numFiles = javaPsiFilesList.size();
 
         printLocalDateTime("Collecting shingles...");
 
@@ -92,22 +93,26 @@ public class CloneCollector {
         javaPsiFilesList.stream()//.limit(30000)
             .forEach(javaPsiFile -> javaPsiFile.accept(new ShinglingRecursiveElementVisitor(cloneConfig)));
 
-        printLocalDateTime(String.format("Collecting methods from %d Java Psi files...", javaPsiFilesList.size()));
+        printLocalDateTime(String.format("Collecting methods from %d Java Psi files (%d shingles found)...",
+            javaPsiFilesList.size(), ShingleDict.getNumShingles()));
         javaPsiFilesList.stream()//.limit(30000)
             .forEach(javaPsiFile -> javaPsiFile.accept(
                 new JavaCloneRecursiveElementVisitor(this, MIN_SENT, MIN_TOKENS, cloneConfig, false))
             );
 
-        printLocalDateTime(String.format("Collecting minhash signatures for %d methods...", CMethodDict.list().size()));
+        this.numMethods = CMethodDict.list().size();
+
+        //printLocalDateTime(String.format("Collecting minhash signatures for %d methods (%d shingles found)...",
+        //    CMethodDict.list().size(), ShingleDict.getNumShingles()));
         //ShingleDict.setMinhashSignatures(CMethodDict.list(), ShingleDict.NUM_MIN_HASHES);
-        try {
-            ShingleDict.setMinhashSignaturesInFiles(CMethodDict.list(), ShingleDict.b, ShingleDict.r);
-            return true;
-        }
-        catch (IOException ex) {
-            ex.printStackTrace();
-            return false;
-        }
+        //try {
+        //    ShingleDict.setMinhashSignaturesInFiles(CMethodDict.list(), ShingleDict.b, ShingleDict.r);
+        //    return true;
+        //}
+        //catch (IOException ex) {
+        //    ex.printStackTrace();
+        //    return false;
+        //}
     }
 
     private static List<VirtualFile> collectJavaClassesInFolder(@NotNull VirtualFile vFolder) {
@@ -303,6 +308,7 @@ public class CloneCollector {
         MIN_SENT = minSent;
         NUM_WEIGHT_LEVELS = numWeightLevels;
         fragments = new ArrayList<>();
+        Instant start = Instant.now();
         collectMethodsMinhashSignatures(project);
 
         printLocalDateTime("Collecting LSH for minhash signatures and generating similar pairs...");
@@ -313,7 +319,8 @@ public class CloneCollector {
         //    .collect(Collectors.toList());
 
         //List<Clone> similarPairs = ShingleDict.lshMinhashSignatures(methods, ShingleDict.b, ShingleDict.r);
-        List<Clone> similarPairs = ShingleDict.lshMinhashSignaturesFromFiles(methods, ShingleDict.b, ShingleDict.r);
+        //List<Clone> similarPairs = ShingleDict.lshMinhashSignaturesFromFiles(methods, ShingleDict.b, ShingleDict.r);
+        List<Clone> similarPairs = ShingleDict.lshMinhashBandSignatures(CMethodDict.list());
 
         printLocalDateTime(String.format("Collecting clones from %d similar pairs...", similarPairs.size()));
         this.clones = (ArrayList<Clone>)similarPairs
@@ -333,6 +340,7 @@ public class CloneCollector {
         FragmentDict.collectFragments(this.clones, this.fragments, this.methods);
 
         // ======================================================================================
+        /*
         printLocalDateTime("Writing clones found to output file...");
         String projectName = project.getName();
         // src folder
@@ -366,11 +374,17 @@ public class CloneCollector {
             System.out.println("Could not write to file");
             e.printStackTrace();
         }
+         */
         // ======================================================================================
 
         this.calculateCCWeight();
         this.sortClones(this.clones);
-        printLocalDateTime("Finished processing.\n");
+        printLocalDateTimeLabel(String.format("Number of files processed: %d.", numFiles));
+        printLocalDateTimeLabel(String.format("Number of lines processed: %d.", numLines));
+        printLocalDateTimeLabel(String.format("Number of methods processed: %d.", numMethods));
+        Instant finish = Instant.now();
+        long timeElapsed = Duration.between(start, finish).toSeconds();
+        printLocalDateTimeLabel(String.format("Finished processing in %d minutes %d seconds.\n", timeElapsed / 60, timeElapsed % 60));
         this.collectBiggest(project, 5, 15);
     }
 

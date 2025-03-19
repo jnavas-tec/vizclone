@@ -21,22 +21,22 @@ public class CMethodDict {
 
     static public Integer getMethodIdx(PsiMethod psiMethod, List<LineColumn> lineColumns, CClass cClass, boolean folderAsPackage) {
         String methodSignature = "";
-        CClass cClazz = null;
+        //CClass cClazz = null;
         if (folderAsPackage) {
-            cClazz = cClass;
-            methodSignature = cClazz.getSignature() + "." + psiMethod.getName() + psiMethod.getParameterList().getText();
+            //cClazz = cClass;
+            methodSignature = cClass.getSignature() + "." + psiMethod.getName() + psiMethod.getParameterList().getText();
             Integer idx = 0;
             while (methodDict.get(methodSignature) != null)
-                methodSignature = cClazz.getSignature() + "." + psiMethod.getName() + idx++ + psiMethod.getParameterList().getText();
+                methodSignature = cClass.getSignature() + "." + psiMethod.getName() + idx++ + psiMethod.getParameterList().getText();
         }
         else {
-            PsiClass containingClass = psiMethod.getContainingClass();
-            String qualifiedName = containingClass.getQualifiedName();
-            if (qualifiedName == null) qualifiedName = containingClass.getName();
-            methodSignature = (containingClass == null ? "" : qualifiedName + ".")
-                + psiMethod.getName() + psiMethod.getParameterList().getText();
+            //cClazz = cClass;
+            //PsiClass containingClass = psiMethod.getContainingClass();
+            String qualifiedName = cClass.getSignature();
+            if (qualifiedName == null) qualifiedName = cClass.getName();
+            methodSignature = qualifiedName + "." + psiMethod.getName() + psiMethod.getParameterList().getText();
             // retrieve class
-            cClazz = CClassDict.getClass(psiMethod.getContainingClass(), lineColumns, false);
+            //cClazz = CClassDict.getClass(psiMethod.getContainingClass(), lineColumns, false);
         }
         Integer index = methodDict.get(methodSignature);
         if (index == null) {
@@ -45,7 +45,7 @@ public class CMethodDict {
             index = methodArray.size();
             methodArray.add(cMethod);
             cMethod.setIdx(index);
-            cMethod.setCClass(cClazz);
+            cMethod.setCClass(cClass);
             cMethod.setPsiMethod(psiMethod);
             cMethod.setName(psiMethod.getName());
             cMethod.setSignature(methodSignature);

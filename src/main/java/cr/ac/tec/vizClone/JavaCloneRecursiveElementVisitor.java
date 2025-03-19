@@ -78,6 +78,7 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
     @Override
     public void visitClass(PsiClass aClass) {
         //if (/*!visitingClass &&*/ !visitingAnonymousClass && !visitingMethod) {
+        if (JavaElementType.TYPE_PARAMETER != aClass.getNode().getElementType()) {
             CClass previousCClass = cClass;
             cClass = CClassDict.getClass(aClass, lineColumns, folderAsPackage);
             boolean previousVisitingClass = visitingClass;
@@ -85,8 +86,8 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
             super.visitClass(aClass);
             visitingClass = previousVisitingClass;
             cClass = previousCClass;
-        //}
-        //else super.visitClass(aClass);
+        }
+        else super.visitClass(aClass);
     }
 
     @Override
@@ -223,6 +224,9 @@ public class JavaCloneRecursiveElementVisitor extends JavaRecursiveElementVisito
         cStatement.setPsiStatement(null);
         cStatement.setCMethod(cMethod);
         cStatement.setFromOffset(brace.getTextRange().getStartOffset());
+        //if (cStatement.getFromOffset() >= lineColumns.size()) {
+        //    boolean here = true;
+       // }
         cStatement.setFromLineColumn(lineColumns.get(cStatement.getFromOffset()));
         cStatement.setToOffset((cStatement.getFromOffset()));
         cStatement.setToLineColumn(cStatement.getFromLineColumn());

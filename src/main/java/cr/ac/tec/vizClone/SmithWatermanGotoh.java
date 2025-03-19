@@ -191,12 +191,12 @@ public class SmithWatermanGotoh {
         ClonePair sourceClonePair = clone.getClonePairs().get(0);
         if (this.config(sourceClonePair.getFragments().get(0).getCMethod(), sourceClonePair.getFragments().get(1).getCMethod(),
             minSim, minSentSim, minTokens, minSent, numWeightLevels)) {
-            if ((sourceClonePair.getFragments().get(0).getCMethod().getCClass().getName().equals("_TomlLexer") &&
-                sourceClonePair.getFragments().get(0).getCMethod().getName().equals("advance")) ||
-                (sourceClonePair.getFragments().get(1).getCMethod().getCClass().getName().equals("_TomlLexer") &&
-                    sourceClonePair.getFragments().get(1).getCMethod().getName().equals("advance"))) {
-                boolean stopHere = true;
-            }
+            //if ((sourceClonePair.getFragments().get(0).getCMethod().getCClass().getName().equals("_TomlLexer") &&
+            //    sourceClonePair.getFragments().get(0).getCMethod().getName().equals("advance")) ||
+            //    (sourceClonePair.getFragments().get(1).getCMethod().getCClass().getName().equals("_TomlLexer") &&
+            //        sourceClonePair.getFragments().get(1).getCMethod().getName().equals("advance"))) {
+            //    boolean stopHere = true;
+            //}
             CloneResult result = this.isClone();
             if (result.maxintsimvalue() >= minsim)
             {
