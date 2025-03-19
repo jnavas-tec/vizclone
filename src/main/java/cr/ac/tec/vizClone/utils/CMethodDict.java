@@ -19,16 +19,27 @@ public class CMethodDict {
         methodDict.clear();
     }
 
-    static public Integer getMethodIdx(PsiMethod psiMethod, List<LineColumn> lineColumns) {
-        PsiClass containingClass = psiMethod.getContainingClass();
-        String qualifiedName = containingClass.getQualifiedName();
-        if (qualifiedName == null) qualifiedName = containingClass.getName();
-        String methodSignature = (containingClass == null ? "" : qualifiedName + ".")
-            + psiMethod.getName() + psiMethod.getParameterList().getText();
+    static public Integer getMethodIdx(PsiMethod psiMethod, List<LineColumn> lineColumns, CClass cClass, boolean folderAsPackage) {
+        String methodSignature = "";
+        //CClass cClazz = null;
+        if (folderAsPackage) {
+            //cClazz = cClass;
+            methodSignature = cClass.getSignature() + "." + psiMethod.getName() + psiMethod.getParameterList().getText();
+            Integer idx = 0;
+            while (methodDict.get(methodSignature) != null)
+                methodSignature = cClass.getSignature() + "." + psiMethod.getName() + idx++ + psiMethod.getParameterList().getText();
+        }
+        else {
+            //cClazz = cClass;
+            //PsiClass containingClass = psiMethod.getContainingClass();
+            String qualifiedName = cClass.getSignature();
+            if (qualifiedName == null) qualifiedName = cClass.getName();
+            methodSignature = qualifiedName + "." + psiMethod.getName() + psiMethod.getParameterList().getText();
+            // retrieve class
+            //cClazz = CClassDict.getClass(psiMethod.getContainingClass(), lineColumns, false);
+        }
         Integer index = methodDict.get(methodSignature);
         if (index == null) {
-            // retrieve class
-            CClass cClass = CClassDict.getClass(psiMethod.getContainingClass(), lineColumns);
             // initialize method
             CMethod cMethod = new CMethod();
             index = methodArray.size();
@@ -47,8 +58,8 @@ public class CMethodDict {
         return index;
     }
 
-    static public CMethod getMethod(PsiMethod psiMethod, List<LineColumn> lineColumns) {
-        return methodArray.get(getMethodIdx(psiMethod, lineColumns));
+    static public CMethod getMethod(PsiMethod psiMethod, List<LineColumn> lineColumns, CClass cClass, boolean folderAsPackage) {
+        return methodArray.get(getMethodIdx(psiMethod, lineColumns, cClass, folderAsPackage));
     }
 
     static public CMethod getMethod(Integer methodIdx) {
@@ -68,8 +79,13 @@ public class CMethodDict {
     }
 
     static public void removeMethod(CMethod method) {
+        int idx = methodDict.get(method.getSignature());
         methodArray.remove((int) methodDict.get(method.getSignature()));
         methodDict.remove(method.getSignature());
+        for (;idx < methodArray.size(); idx++) {
+            methodArray.get(idx).setIdx(idx);
+            methodDict.put(method.getSignature(), idx);
+        }
     }
 
     static public Map<String, Integer> dict() {
@@ -84,6 +100,7 @@ public class CMethodDict {
         CMethod cMethod = getMethod(methodIdx);
         if (cMethod != null) {
             cMethod.getCStatements().add(cStatement);
+            /*
             int size = cMethod.getCStatements().size();
             if (!JavaElementType.BLOCK_STATEMENT.equals(cStatement.getPsiStatement().getNode().getElementType()) && size > 1) {
                 int leftFrom = cMethod.getCStatements().get(size-2).getFromLineColumn().line;
@@ -94,6 +111,7 @@ public class CMethodDict {
                     boolean WTF = true;
                 }
             }
+             */
         }
     }
 

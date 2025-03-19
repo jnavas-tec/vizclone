@@ -85,7 +85,7 @@ public final class DiffCloneManager {
             for (int mIdx = 0; mIdx < clone.getMethods().size(); mIdx++) {
                 Method method = clone.getMethods().get(mIdx);
                 List<CStatement> cStatements = CMethodDict.getMethod(method.getCMethodIdx()).getCStatements();
-                List<PsiStatement> psiStatements = cStatements.stream().map(CStatement::getPsiStatement).collect(Collectors.toList());
+                List<PsiElement> psiStatements = cStatements.stream().map(cStatement -> cStatement.getPsiStatement() == null ? cStatement.getCMethod().getPsiMethod() : cStatement.getPsiStatement()).collect(Collectors.toList());
                 duplicates[cIdx][mIdx] = new TreePsiFragment(null, psiStatements, method.getFromStatement(), method.getToStatement());
                 ccScore = Math.max(ccScore, method.getCcScore());
             }
