@@ -1,6 +1,7 @@
 package cr.ac.tec.vizClone.model;
 
 import com.intellij.openapi.util.text.LineColumn;
+import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiStatement;
 import lombok.Data;
 
@@ -15,6 +16,7 @@ public class CStatement {
     private Integer fromOffset;
     private Integer toOffset;
     private CMethod cMethod;
+    private boolean isMethodSignature = false;
     private List<Integer> tokens = new ArrayList<>();
     private PsiStatement psiStatement;
     private String text = "";

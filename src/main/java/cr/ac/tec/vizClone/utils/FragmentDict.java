@@ -168,11 +168,11 @@ public class FragmentDict {
         collectMethods();
         fixCloneMethodsCCScore(clones);
         methods.addAll(methodArray);
-        clones.stream()
-            .forEach(clone -> {
-                if (clone.getMethods().size() == 0) {
-                    boolean ouch = true;
-                }
-            });
+        //clones.stream()
+        //    .forEach(clone -> {
+        //        if (clone.getMethods().size() == 0) {
+        //            boolean ouch = true;
+        //        }
+        //    });
     }
 }

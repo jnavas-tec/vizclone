@@ -1,0 +1,393 @@
+16/03/2025 10:59:10: Collecting java virtual files from reduced BCB dataset... (time ellapsed = 0:0)
+16/03/2025 10:59:10: Collecting java psi files... (time ellapsed = 0:0)
+16/03/2025 10:59:10: Iteration 1 of 43
+------------------------------------------------------
+16/03/2025 10:59:10: Collecting shingles... (time ellapsed = 2:4)
+16/03/2025 11:01:15: Collecting methods from 23193 Java Psi files (13953522 shingles found)... (time ellapsed = 2:24)
+16/03/2025 11:03:39: Collecting LSH for minhash signatures and generating similar pairs (13953522 shingles found)... (time ellapsed = 0:11)
+16/03/2025 11:03:51: Collecting clones from 769881 similar pairs... (time ellapsed = 1:13)
+16/03/2025 11:05:05: Fixing fragment indices from 756875 clones... (time ellapsed = 0:0)
+16/03/2025 11:05:05: Collecting fragments for 756875 clones... (time ellapsed = 0:2)
+16/03/2025 11:05:08: Writing clones found to output file... (time ellapsed = 0:14)
+16/03/2025 11:05:22: Iteration 2 of 43
+------------------------------------------------------
+16/03/2025 11:05:22: Collecting shingles... (time ellapsed = 0:53)
+16/03/2025 11:06:16: Collecting methods from 10718 Java Psi files (6516326 shingles found)... (time ellapsed = 0:51)
+16/03/2025 11:07:07: Collecting LSH for minhash signatures and generating similar pairs (6516326 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:07:09: Collecting clones from 114093 similar pairs... (time ellapsed = 0:6)
+16/03/2025 11:07:15: Fixing fragment indices from 111347 clones... (time ellapsed = 0:0)
+16/03/2025 11:07:15: Collecting fragments for 111347 clones... (time ellapsed = 0:0)
+16/03/2025 11:07:16: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:07:16: Iteration 3 of 43
+------------------------------------------------------
+16/03/2025 11:07:16: Collecting shingles... (time ellapsed = 0:20)
+16/03/2025 11:07:36: Collecting methods from 4632 Java Psi files (2920417 shingles found)... (time ellapsed = 0:19)
+16/03/2025 11:07:56: Collecting LSH for minhash signatures and generating similar pairs (2920417 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:07:57: Collecting clones from 28974 similar pairs... (time ellapsed = 0:1)
+16/03/2025 11:07:58: Fixing fragment indices from 27897 clones... (time ellapsed = 0:0)
+16/03/2025 11:07:58: Collecting fragments for 27897 clones... (time ellapsed = 0:0)
+16/03/2025 11:07:58: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:07:58: Iteration 4 of 43
+------------------------------------------------------
+16/03/2025 11:07:58: Collecting shingles... (time ellapsed = 0:31)
+16/03/2025 11:08:30: Collecting methods from 2710 Java Psi files (2733562 shingles found)... (time ellapsed = 0:34)
+16/03/2025 11:09:04: Collecting LSH for minhash signatures and generating similar pairs (2733562 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:09:06: Collecting clones from 115799 similar pairs... (time ellapsed = 0:19)
+16/03/2025 11:09:25: Fixing fragment indices from 108321 clones... (time ellapsed = 0:0)
+16/03/2025 11:09:25: Collecting fragments for 108321 clones... (time ellapsed = 0:0)
+16/03/2025 11:09:25: Writing clones found to output file... (time ellapsed = 0:1)
+16/03/2025 11:09:27: Iteration 5 of 43
+------------------------------------------------------
+16/03/2025 11:09:27: Collecting shingles... (time ellapsed = 0:14)
+16/03/2025 11:09:41: Collecting methods from 1628 Java Psi files (1510444 shingles found)... (time ellapsed = 0:13)
+16/03/2025 11:09:54: Collecting LSH for minhash signatures and generating similar pairs (1510444 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:09:55: Collecting clones from 7034 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:09:56: Fixing fragment indices from 6829 clones... (time ellapsed = 0:0)
+16/03/2025 11:09:56: Collecting fragments for 6829 clones... (time ellapsed = 0:0)
+16/03/2025 11:09:56: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:09:56: Iteration 6 of 43
+------------------------------------------------------
+16/03/2025 11:09:56: Collecting shingles... (time ellapsed = 0:9)
+16/03/2025 11:10:06: Collecting methods from 1147 Java Psi files (1248731 shingles found)... (time ellapsed = 0:9)
+16/03/2025 11:10:15: Collecting LSH for minhash signatures and generating similar pairs (1248731 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:10:16: Collecting clones from 26648 similar pairs... (time ellapsed = 0:2)
+16/03/2025 11:10:18: Fixing fragment indices from 26338 clones... (time ellapsed = 0:0)
+16/03/2025 11:10:18: Collecting fragments for 26338 clones... (time ellapsed = 0:0)
+16/03/2025 11:10:18: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:10:18: Iteration 7 of 43
+------------------------------------------------------
+16/03/2025 11:10:18: Collecting shingles... (time ellapsed = 0:6)
+16/03/2025 11:10:25: Collecting methods from 1034 Java Psi files (853987 shingles found)... (time ellapsed = 0:8)
+16/03/2025 11:10:33: Collecting LSH for minhash signatures and generating similar pairs (853987 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:10:33: Collecting clones from 48554 similar pairs... (time ellapsed = 0:1)
+16/03/2025 11:10:35: Fixing fragment indices from 48354 clones... (time ellapsed = 0:0)
+16/03/2025 11:10:35: Collecting fragments for 48354 clones... (time ellapsed = 0:0)
+16/03/2025 11:10:35: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:10:36: Iteration 8 of 43
+------------------------------------------------------
+16/03/2025 11:10:36: Collecting shingles... (time ellapsed = 0:3)
+16/03/2025 11:10:40: Collecting methods from 817 Java Psi files (614225 shingles found)... (time ellapsed = 0:4)
+16/03/2025 11:10:44: Collecting LSH for minhash signatures and generating similar pairs (614225 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:10:44: Collecting clones from 5037 similar pairs... (time ellapsed = 0:1)
+16/03/2025 11:10:46: Fixing fragment indices from 5014 clones... (time ellapsed = 0:0)
+16/03/2025 11:10:46: Collecting fragments for 5014 clones... (time ellapsed = 0:0)
+16/03/2025 11:10:46: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:10:46: Iteration 9 of 43
+------------------------------------------------------
+16/03/2025 11:10:46: Collecting shingles... (time ellapsed = 0:2)
+16/03/2025 11:10:48: Collecting methods from 669 Java Psi files (219500 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:10:50: Collecting LSH for minhash signatures and generating similar pairs (219500 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:10:51: Collecting clones from 29655 similar pairs... (time ellapsed = 0:1)
+16/03/2025 11:10:52: Fixing fragment indices from 29509 clones... (time ellapsed = 0:0)
+16/03/2025 11:10:52: Collecting fragments for 29509 clones... (time ellapsed = 0:0)
+16/03/2025 11:10:52: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:10:52: Iteration 10 of 43
+------------------------------------------------------
+16/03/2025 11:10:52: Collecting shingles... (time ellapsed = 0:2)
+16/03/2025 11:10:54: Collecting methods from 529 Java Psi files (124139 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:10:57: Collecting LSH for minhash signatures and generating similar pairs (124139 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:10:58: Collecting clones from 276282 similar pairs... (time ellapsed = 0:15)
+16/03/2025 11:11:14: Fixing fragment indices from 276247 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:14: Collecting fragments for 276247 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:15: Writing clones found to output file... (time ellapsed = 0:1)
+16/03/2025 11:11:16: Iteration 11 of 43
+------------------------------------------------------
+16/03/2025 11:11:16: Collecting shingles... (time ellapsed = 0:4)
+16/03/2025 11:11:20: Collecting methods from 504 Java Psi files (589976 shingles found)... (time ellapsed = 0:5)
+16/03/2025 11:11:26: Collecting LSH for minhash signatures and generating similar pairs (589976 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:11:26: Collecting clones from 51867 similar pairs... (time ellapsed = 0:1)
+16/03/2025 11:11:28: Fixing fragment indices from 50802 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:28: Collecting fragments for 50802 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:28: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:11:28: Iteration 12 of 43
+------------------------------------------------------
+16/03/2025 11:11:28: Collecting shingles... (time ellapsed = 0:2)
+16/03/2025 11:11:30: Collecting methods from 481 Java Psi files (222065 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:11:33: Collecting LSH for minhash signatures and generating similar pairs (222065 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:11:33: Collecting clones from 19478 similar pairs... (time ellapsed = 0:1)
+16/03/2025 11:11:34: Fixing fragment indices from 19466 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:34: Collecting fragments for 19466 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:34: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:11:34: Iteration 13 of 43
+------------------------------------------------------
+16/03/2025 11:11:34: Collecting shingles... (time ellapsed = 0:2)
+16/03/2025 11:11:36: Collecting methods from 481 Java Psi files (388176 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:11:39: Collecting LSH for minhash signatures and generating similar pairs (388176 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:11:39: Collecting clones from 3359 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:11:40: Fixing fragment indices from 3345 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:40: Collecting fragments for 3345 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:40: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:11:40: Iteration 14 of 43
+------------------------------------------------------
+16/03/2025 11:11:40: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:11:41: Collecting methods from 476 Java Psi files (319453 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:11:44: Collecting LSH for minhash signatures and generating similar pairs (319453 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:11:44: Collecting clones from 686 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:11:44: Fixing fragment indices from 671 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:44: Collecting fragments for 671 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:44: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:11:44: Iteration 15 of 43
+------------------------------------------------------
+16/03/2025 11:11:44: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:11:45: Collecting methods from 375 Java Psi files (300836 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:11:48: Collecting LSH for minhash signatures and generating similar pairs (300836 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:11:48: Collecting clones from 1734 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:11:48: Fixing fragment indices from 1728 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:48: Collecting fragments for 1728 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:48: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:11:48: Iteration 16 of 43
+------------------------------------------------------
+16/03/2025 11:11:48: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:11:50: Collecting methods from 367 Java Psi files (253348 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:11:52: Collecting LSH for minhash signatures and generating similar pairs (253348 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:11:52: Collecting clones from 1117 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:11:52: Fixing fragment indices from 1095 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:52: Collecting fragments for 1095 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:52: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:11:52: Iteration 17 of 43
+------------------------------------------------------
+16/03/2025 11:11:52: Collecting shingles... (time ellapsed = 0:2)
+16/03/2025 11:11:54: Collecting methods from 363 Java Psi files (345620 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:11:57: Collecting LSH for minhash signatures and generating similar pairs (345620 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:11:57: Collecting clones from 2900 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:11:57: Fixing fragment indices from 2880 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:57: Collecting fragments for 2880 clones... (time ellapsed = 0:0)
+16/03/2025 11:11:57: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:11:57: Iteration 18 of 43
+------------------------------------------------------
+16/03/2025 11:11:57: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:11:59: Collecting methods from 354 Java Psi files (260402 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:12:01: Collecting LSH for minhash signatures and generating similar pairs (260402 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:01: Collecting clones from 939 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:01: Fixing fragment indices from 922 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:01: Collecting fragments for 922 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:01: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:01: Iteration 19 of 43
+------------------------------------------------------
+16/03/2025 11:12:01: Collecting shingles... (time ellapsed = 0:2)
+16/03/2025 11:12:03: Collecting methods from 345 Java Psi files (334173 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:12:06: Collecting LSH for minhash signatures and generating similar pairs (334173 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:06: Collecting clones from 18440 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:07: Fixing fragment indices from 18350 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:07: Collecting fragments for 18350 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:07: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:07: Iteration 20 of 43
+------------------------------------------------------
+16/03/2025 11:12:07: Collecting shingles... (time ellapsed = 0:2)
+16/03/2025 11:12:09: Collecting methods from 331 Java Psi files (465021 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:12:12: Collecting LSH for minhash signatures and generating similar pairs (465021 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:12: Collecting clones from 844 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:12: Fixing fragment indices from 833 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:12: Collecting fragments for 833 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:12: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:12: Iteration 21 of 43
+------------------------------------------------------
+16/03/2025 11:12:12: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:12:14: Collecting methods from 303 Java Psi files (247644 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:12:15: Collecting LSH for minhash signatures and generating similar pairs (247644 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:15: Collecting clones from 5440 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:16: Fixing fragment indices from 5414 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:16: Collecting fragments for 5414 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:16: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:16: Iteration 22 of 43
+------------------------------------------------------
+16/03/2025 11:12:16: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:12:17: Collecting methods from 302 Java Psi files (197113 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:12:18: Collecting LSH for minhash signatures and generating similar pairs (197113 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:18: Collecting clones from 363 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:18: Fixing fragment indices from 363 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:18: Collecting fragments for 363 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:18: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:18: Iteration 23 of 43
+------------------------------------------------------
+16/03/2025 11:12:18: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:12:19: Collecting methods from 297 Java Psi files (105615 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:20: Collecting LSH for minhash signatures and generating similar pairs (105615 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:20: Collecting clones from 1636 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:20: Fixing fragment indices from 1636 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:20: Collecting fragments for 1636 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:21: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:21: Iteration 24 of 43
+------------------------------------------------------
+16/03/2025 11:12:21: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:12:22: Collecting methods from 293 Java Psi files (253098 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:12:23: Collecting LSH for minhash signatures and generating similar pairs (253098 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:23: Collecting clones from 483 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:23: Fixing fragment indices from 463 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:23: Collecting fragments for 463 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:23: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:23: Iteration 25 of 43
+------------------------------------------------------
+16/03/2025 11:12:23: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:12:25: Collecting methods from 280 Java Psi files (225091 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:12:26: Collecting LSH for minhash signatures and generating similar pairs (225091 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:26: Collecting clones from 1433 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:26: Fixing fragment indices from 1393 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:26: Collecting fragments for 1393 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:26: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:26: Iteration 26 of 43
+------------------------------------------------------
+16/03/2025 11:12:26: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:12:28: Collecting methods from 265 Java Psi files (106028 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:12:30: Collecting LSH for minhash signatures and generating similar pairs (106028 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:31: Collecting clones from 27344 similar pairs... (time ellapsed = 0:2)
+16/03/2025 11:12:33: Fixing fragment indices from 27344 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:33: Collecting fragments for 27344 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:33: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:33: Iteration 27 of 43
+------------------------------------------------------
+16/03/2025 11:12:33: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:12:34: Collecting methods from 261 Java Psi files (224196 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:12:35: Collecting LSH for minhash signatures and generating similar pairs (224196 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:35: Collecting clones from 367 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:12:35: Fixing fragment indices from 355 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:35: Collecting fragments for 355 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:35: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:12:35: Iteration 28 of 43
+------------------------------------------------------
+16/03/2025 11:12:35: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:12:36: Collecting methods from 254 Java Psi files (15593 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:37: Collecting LSH for minhash signatures and generating similar pairs (15593 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:12:39: Collecting clones from 221322 similar pairs... (time ellapsed = 0:7)
+16/03/2025 11:12:46: Fixing fragment indices from 220863 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:46: Collecting fragments for 220863 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:47: Writing clones found to output file... (time ellapsed = 0:1)
+16/03/2025 11:12:48: Iteration 29 of 43
+------------------------------------------------------
+16/03/2025 11:12:48: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:12:49: Collecting methods from 240 Java Psi files (24749 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:12:50: Collecting LSH for minhash signatures and generating similar pairs (24749 shingles found)... (time ellapsed = 0:2)
+16/03/2025 11:12:52: Collecting clones from 218550 similar pairs... (time ellapsed = 0:3)
+16/03/2025 11:12:56: Fixing fragment indices from 218549 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:56: Collecting fragments for 218549 clones... (time ellapsed = 0:0)
+16/03/2025 11:12:56: Writing clones found to output file... (time ellapsed = 0:1)
+16/03/2025 11:12:57: Iteration 30 of 43
+------------------------------------------------------
+16/03/2025 11:12:57: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:12:59: Collecting methods from 221 Java Psi files (99796 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:13:00: Collecting LSH for minhash signatures and generating similar pairs (99796 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:00: Collecting clones from 1920 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:00: Fixing fragment indices from 1915 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:00: Collecting fragments for 1915 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:00: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:00: Iteration 31 of 43
+------------------------------------------------------
+16/03/2025 11:13:00: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:01: Collecting methods from 207 Java Psi files (144326 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:13:02: Collecting LSH for minhash signatures and generating similar pairs (144326 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:02: Collecting clones from 467 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:02: Fixing fragment indices from 460 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:02: Collecting fragments for 460 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:02: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:02: Iteration 32 of 43
+------------------------------------------------------
+16/03/2025 11:13:02: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:02: Collecting methods from 206 Java Psi files (78881 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:03: Collecting LSH for minhash signatures and generating similar pairs (78881 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:03: Collecting clones from 598 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:03: Fixing fragment indices from 564 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:03: Collecting fragments for 564 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:03: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:03: Iteration 33 of 43
+------------------------------------------------------
+16/03/2025 11:13:03: Collecting shingles... (time ellapsed = 0:1)
+16/03/2025 11:13:04: Collecting methods from 202 Java Psi files (228644 shingles found)... (time ellapsed = 0:1)
+16/03/2025 11:13:06: Collecting LSH for minhash signatures and generating similar pairs (228644 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:06: Collecting clones from 846 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:06: Fixing fragment indices from 839 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:06: Collecting fragments for 839 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:06: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:06: Iteration 34 of 43
+------------------------------------------------------
+16/03/2025 11:13:06: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:07: Collecting methods from 175 Java Psi files (127197 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:08: Collecting LSH for minhash signatures and generating similar pairs (127197 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:08: Collecting clones from 343 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:08: Fixing fragment indices from 341 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:08: Collecting fragments for 341 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:08: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:08: Iteration 35 of 43
+------------------------------------------------------
+16/03/2025 11:13:08: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:08: Collecting methods from 145 Java Psi files (145547 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:09: Collecting LSH for minhash signatures and generating similar pairs (145547 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:09: Collecting clones from 509 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:09: Fixing fragment indices from 506 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:09: Collecting fragments for 506 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:09: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:09: Iteration 36 of 43
+------------------------------------------------------
+16/03/2025 11:13:09: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:10: Collecting methods from 131 Java Psi files (47337 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:10: Collecting LSH for minhash signatures and generating similar pairs (47337 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:10: Collecting clones from 470 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:10: Fixing fragment indices from 432 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:10: Collecting fragments for 432 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:10: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:10: Iteration 37 of 43
+------------------------------------------------------
+16/03/2025 11:13:10: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:11: Collecting methods from 107 Java Psi files (95847 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:11: Collecting LSH for minhash signatures and generating similar pairs (95847 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:11: Collecting clones from 115 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:11: Fixing fragment indices from 114 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:11: Collecting fragments for 114 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:11: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:11: Iteration 38 of 43
+------------------------------------------------------
+16/03/2025 11:13:11: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:11: Collecting methods from 104 Java Psi files (27145 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting LSH for minhash signatures and generating similar pairs (27145 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting clones from 89 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Fixing fragment indices from 89 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting fragments for 89 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Iteration 39 of 43
+------------------------------------------------------
+16/03/2025 11:13:12: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting methods from 94 Java Psi files (38643 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting LSH for minhash signatures and generating similar pairs (38643 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting clones from 721 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Fixing fragment indices from 712 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting fragments for 712 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Iteration 40 of 43
+------------------------------------------------------
+16/03/2025 11:13:12: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting methods from 71 Java Psi files (27786 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting LSH for minhash signatures and generating similar pairs (27786 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting clones from 44 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Fixing fragment indices from 44 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Collecting fragments for 44 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:12: Iteration 41 of 43
+------------------------------------------------------
+16/03/2025 11:13:12: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting methods from 67 Java Psi files (28714 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting LSH for minhash signatures and generating similar pairs (28714 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting clones from 152 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Fixing fragment indices from 130 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting fragments for 130 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Iteration 42 of 43
+------------------------------------------------------
+16/03/2025 11:13:13: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting methods from 64 Java Psi files (27148 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting LSH for minhash signatures and generating similar pairs (27148 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting clones from 76 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Fixing fragment indices from 76 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting fragments for 76 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Iteration 43 of 43
+------------------------------------------------------
+16/03/2025 11:13:13: Collecting shingles... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting methods from 56 Java Psi files (15258 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting LSH for minhash signatures and generating similar pairs (15258 shingles found)... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting clones from 31 similar pairs... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Fixing fragment indices from 31 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Collecting fragments for 31 clones... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Writing clones found to output file... (time ellapsed = 0:0)
+16/03/2025 11:13:13: Number of files processed: 55499.
+16/03/2025 11:13:13: Number of lines processed: 15431781.
+16/03/2025 11:13:13: Number of methods processed: 460138.
+16/03/2025 11:13:13: Finished processing in 14 minutes 3 seconds.

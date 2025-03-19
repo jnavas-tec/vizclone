@@ -35,9 +35,9 @@ public class Fragment {
         this.setToOffset(cMethod.getCStatements().get(toStatement).getToOffset());
         this.setFromLineColumn(cMethod.getCStatements().get(fromStatement).getFromLineColumn());
         this.setToLineColumn(cMethod.getCStatements().get(toStatement).getToLineColumn());
-        if (this.getFromLineColumn().line > this.getToLineColumn().line) {
-            boolean shouldNotStopHere = false;
-        }
+        //if (this.getFromLineColumn().line > this.getToLineColumn().line) {
+        //    boolean shouldNotStopHere = false;
+        //}
         int ccScore = 0;
         for (int s = fromStatement; s <= toStatement; s++) ccScore += cMethod.getCStatements().get(s).getCcScore();
         this.setCognitiveComplexity(ccScore);
